@@ -1,5 +1,8 @@
-module Sound.Pd  (
+module Sound.Pd (
     makePatch,
+    makeWeakPatch,
+    withPatch,
+    closePatch,
     initLibPd,
     send,
     sendGlobal,
@@ -8,6 +11,7 @@ module Sound.Pd  (
     PureData,
     Patch,
     Receiver,
+    makeReceiveChan,
     subscribe,
     local
     ) where

@@ -13,12 +13,18 @@ import qualified Data.Map as Map
 import Foreign.StablePtr
 import Data.String
 import Data.Data
+import Control.Exception
+
+import System.Mem.Weak
 
 data Atom = String String | Float Float deriving Show
 
 -- With OverloadedStrings, allows writing e.g. List ["freq", 440, "ratio", 1.6] 
 instance IsString Atom where
     fromString = String
+
+instance IsString Message where
+    fromString = Atom . String
 
 instance Num Atom where
     (Float a) + (Float b) = Float (a + b)
@@ -82,7 +88,7 @@ acquireChannel name channelsVar = do
 initLibPd :: IO PureData
 initLibPd = do
     runChan <- newChan
-    forkOS . forever $ join $ readChan runChan            
+    _ <- forkOS . forever $ join $ readChan runChan
 
     channelsVar <- newTVarIO Map.empty
 
@@ -98,7 +104,7 @@ initLibPd = do
     setFloatHook   (\r f   -> write (r, Atom (Float f)))
     setListHook    (\r l   -> write (r, List l))
     setMessageHook (\r m l -> write (r, Message m l))
-    forkIO . forever . atomically $ do
+    _ <- forkIO . forever . atomically $ do
         (rec, msg)   <- readTChan receiveChan
         (channel, _) <- acquireChannel rec channelsVar
         writeTChan channel msg
@@ -115,14 +121,19 @@ initLibPd = do
 
     return pd
 
--- | Subscribe to a given receiver name's output.
-subscribe :: PureData -> Receiver -> (Message -> IO a) -> IO ThreadId
-subscribe (PureData {pdChannels=channelsVar}) name handler = do
+makeReceiveChan :: PureData -> Receiver -> IO (TChan Message)
+makeReceiveChan (PureData {pdChannels=channelsVar}) name = do
     (channel, isNew) <- atomically $ do
         (bChan, isNew) <- acquireChannel name channelsVar
         chan <- dupTChan bChan
         return (chan, isNew)
     when isNew $ void $ bind name
+    return channel
+
+-- | Subscribe to a given receiver name's output.
+subscribe :: PureData -> Receiver -> (Message -> IO a) -> IO ThreadId
+subscribe pd name handler = do
+    channel <- makeReceiveChan pd name
     forkIO . forever $ 
         handler =<< atomically (readTChan channel)
 
@@ -141,6 +152,22 @@ makePatch pd fileName = pdRun (pdChan pd) $ do
     file <- openFile (fileName <.> "pd") "."
     dz   <- getDollarZero file
     return $ Patch file dz
+
+-- | This should work, but doesn't seem to work perfectly with Halive yet
+makeWeakPatch :: PureData -> FilePath -> IO Patch
+makeWeakPatch pd fileName = do
+    patch@(Patch file _) <- makePatch pd fileName
+    addFinalizer patch $ do
+        putStrLn $ "Closing weak patch: " ++ fileName
+        closeFile file
+    return patch
+
+closePatch :: PureData -> Patch -> IO ()
+closePatch pd (Patch file _) = pdRun (pdChan pd) $ closeFile file
+
+
+withPatch :: PureData -> FilePath -> (Patch -> IO a) -> IO a
+withPatch pd name = bracket (makePatch pd name) (closePatch pd)
 
 -- | Open the given filename in the given dir
 openFile :: String -> String -> IO File
@@ -180,7 +207,7 @@ symbol receiver sym = fromIntegral <$>
 -- | Send a message (a selector with arguments) to the given receiver name
 message :: Receiver -> String -> [Atom] -> IO Int
 message receiver sel args = do
-    startMessage $ length args
+    _ <- startMessage $ length args
     forM_ args $ \case
         String s -> addSymbol s
         Float  f -> addFloat f
@@ -189,7 +216,7 @@ message receiver sel args = do
 -- | Send a list to the given receiver name
 list :: Receiver -> [Atom] -> IO Int
 list receiver args = do
-    startMessage $ length args
+    _ <- startMessage $ length args
     forM_ args $ \case
         String s -> addSymbol s
         Float  f -> addFloat f

@@ -42,6 +42,7 @@ library
   build-depends:       base, filepath, stm, containers
   hs-source-dirs:      src
   default-language:    Haskell2010
+  ghc-options:         -threaded -Wall
   cc-options:
     -Wno-parentheses
     -Wno-switch
@@ -74,7 +75,7 @@ library
       -Wno-int-to-pointer-cast
       -Wno-pointer-to-int-cast
 
-  ghc-options: -threaded
+  
   include-dirs:
     libpd/libpd_wrapper
     libpd/libpd_wrapper/util

@@ -1,8 +1,12 @@
 module Sound.Pd1 (
     makePatch,
+    makeWeakPatch,
+    withPatch,
+    closePatch,
     send,
     sendGlobal,
     subscribe,
+    makeReceiveChan,
     Pd.local,
     Pd.Atom(..),
     Pd.Message(..)
@@ -25,10 +29,29 @@ makePatch fileName = do
     pd <- getPd
     Pd.makePatch pd fileName
 
+withPatch :: FilePath -> (Pd.Patch -> IO a) -> IO a
+withPatch fileName action = do
+    pd <- getPd
+    Pd.withPatch pd fileName action
+
+makeWeakPatch :: FilePath -> IO Pd.Patch
+makeWeakPatch fileName = do
+    pd <- getPd
+    Pd.makeWeakPatch pd fileName
+
+closePatch :: Pd.Patch -> IO ()
+closePatch patch = do
+    pd <- getPd
+    Pd.closePatch pd patch
+
 send :: Pd.Patch -> Pd.Receiver -> Pd.Message -> IO ()
 send patch receiver msg = do
     pd <- getPd
     Pd.send pd patch receiver msg
+
+makeReceiveChan name = do
+    pd <- getPd
+    Pd.makeReceiveChan pd name
 
 -- | Sends a message to the given global receiver name
 sendGlobal :: Pd.Receiver -> Pd.Message -> IO ()
