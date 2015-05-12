@@ -49,6 +49,7 @@ library
     -DPD
     -DHAVE_UNISTD_H
     -DUSEAPI_DUMMY
+    -DLIBPD_EXTRA
   if os(darwin)
     frameworks: Foundation AudioToolbox AudioUnit Accelerate CoreAudio Carbon
     cc-options:
@@ -157,6 +158,18 @@ library
     libpd/pure-data/src/x_scalar.c
     libpd/pure-data/src/x_text.c
     libpd/pure-data/src/x_time.c
+    libpd/pure-data/extra/bob~/bob~.c 
+    libpd/pure-data/extra/bonk~/bonk~.c
+    libpd/pure-data/extra/choice/choice.c 
+    libpd/pure-data/extra/expr~/vexp_fun.c
+    libpd/pure-data/extra/expr~/vexp_if.c 
+    libpd/pure-data/extra/expr~/vexp.c
+    libpd/pure-data/extra/fiddle~/fiddle~.c 
+    libpd/pure-data/extra/loop~/loop~.c
+    libpd/pure-data/extra/lrshift~/lrshift~.c 
+    libpd/pure-data/extra/pique/pique.c
+    libpd/pure-data/extra/sigmund~/sigmund~.c 
+    libpd/pure-data/extra/stdout/stdout.c
     libpd/pure-data/portaudio/src/common/pa_allocation.c
     libpd/pure-data/portaudio/src/common/pa_converters.c
     libpd/pure-data/portaudio/src/common/pa_cpuload.c
