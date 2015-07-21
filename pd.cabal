@@ -39,10 +39,10 @@ library
     Sound.Pd.Internal
   -- other-modules:
   -- other-extensions:
-  build-depends:       base, filepath, stm, containers
+  build-depends:       base, filepath, stm, containers, linear
   hs-source-dirs:      src
   default-language:    Haskell2010
-  ghc-options:         -threaded -Wall
+  ghc-options:         -Wall
   cc-options:
     -Wno-parentheses
     -Wno-switch
@@ -51,12 +51,12 @@ library
     -DUSEAPI_DUMMY
     -DLIBPD_EXTRA
   if os(darwin)
-    frameworks: Foundation AudioToolbox AudioUnit Accelerate CoreAudio Carbon
+    frameworks: Foundation AudioToolbox AudioUnit Accelerate CoreAudio Carbon OpenAL
     cc-options:
       -DPA_USE_COREAUDIO
       -DHAVE_LIBDL
       -DHAVE_ALLOCA_H
-    extra-libraries: dl
+    extra-libraries: dl c++
   if os(linux)
     cc-options:
       -DPA_USE_ALSA
@@ -85,7 +85,7 @@ library
     libpd/pure-data/portaudio/src/common
   
   c-sources:
-    cbits/libpd_portaudio.c
+    cbits/libpd_openal.c
     libpd/libpd_wrapper/z_libpd.c
     libpd/libpd_wrapper/z_hooks.c
     libpd/libpd_wrapper/s_libpdmidi.c

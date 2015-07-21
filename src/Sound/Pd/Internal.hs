@@ -1,10 +1,15 @@
-{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, LambdaCase, TupleSections #-}
+{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, LambdaCase, TupleSections, GeneralizedNewtypeDeriving #-}
 module Sound.Pd.Internal where
 import Foreign.C
 import Foreign.Ptr
+import Foreign.Marshal.Array
 import Foreign.StablePtr
+import Foreign.Storable
 import Control.Concurrent
 import Control.Monad
+import Linear
+
+newtype OpenALSource = OpenALSource CUInt deriving (Show, Storable)
 
 data FileOpaque
 type File = Ptr FileOpaque
@@ -15,28 +20,40 @@ type Binding = Ptr BindingOpaque
 data AtomOpaque
 type AtomPtr = Ptr AtomOpaque
 
-data AudioOpaque
-type AudioPtr = Ptr AudioOpaque
 type PdChan = Chan (IO ())
 
+-- Run a command on the Pd thread and block awaiting the result
 pdRun :: PdChan -> IO a -> IO a
 pdRun chan action = do
-    lock <- newEmptyMVar
-    writeChan chan (putMVar lock =<< action)
-    takeMVar lock
+    result <- newEmptyMVar
+    writeChan chan (action >>= putMVar result)
+    takeMVar result
 
-foreign import ccall "startAudio" startAudio :: StablePtr PdChan -> IO AudioPtr
+foreign import ccall "startAudio" startAudio :: StablePtr PdChan -> IO (Ptr OpenALSource)
 
-foreign import ccall "&finishAudio" finishAudio :: FunPtr (AudioPtr -> IO ())
-
-foreign import ccall "libpd_process_float"  libpd_process_float  :: CInt -> Ptr CFloat -> Ptr CFloat -> IO CInt
+foreign import ccall "libpd_process_float"  libpd_process_float  :: CInt -> Ptr CFloat  -> Ptr CFloat  -> IO CInt
 foreign import ccall "libpd_process_double" libpd_process_double :: CInt -> Ptr CDouble -> Ptr CDouble -> IO CInt
+foreign import ccall "libpd_process_short"  libpd_process_short  :: CInt -> Ptr CShort  -> Ptr CShort  -> IO CInt
 
-foreign export ccall processFloat :: StablePtr PdChan -> CInt -> Ptr CDouble -> Ptr CDouble -> IO ()
-processFloat :: StablePtr PdChan -> CInt -> Ptr CDouble -> Ptr CDouble -> IO ()
+
+foreign export ccall processFloat :: StablePtr PdChan -> CInt -> Ptr CFloat -> Ptr CFloat -> IO ()
+processFloat :: StablePtr PdChan -> CInt -> Ptr CFloat -> Ptr CFloat -> IO ()
 processFloat stablePdChan ticks inBuffer outBuffer = do
     chan <- deRefStablePtr stablePdChan
+    pdRun chan $ void $ libpd_process_float ticks inBuffer outBuffer
+
+foreign export ccall processDouble :: StablePtr PdChan -> CInt -> Ptr CDouble -> Ptr CDouble -> IO ()
+processDouble :: StablePtr PdChan -> CInt -> Ptr CDouble -> Ptr CDouble -> IO ()
+processDouble stablePdChan ticks inBuffer outBuffer = do
+    chan <- deRefStablePtr stablePdChan
     pdRun chan $ void $ libpd_process_double ticks inBuffer outBuffer
+
+foreign export ccall processShort :: StablePtr PdChan -> CInt -> Ptr CShort -> Ptr CShort -> IO ()
+processShort :: StablePtr PdChan -> CInt -> Ptr CShort -> Ptr CShort -> IO ()
+processShort stablePdChan ticks inBuffer outBuffer = do
+    chan <- deRefStablePtr stablePdChan
+    pdRun chan $ void $ libpd_process_short ticks inBuffer outBuffer
+
 
 foreign import ccall "libpd_init" libpd_init :: IO ()
 
@@ -55,6 +72,7 @@ foreign import ccall "libpd_finish_message" libpd_finish_message :: CString -> C
 foreign import ccall "libpd_finish_list" libpd_finish_list :: CString -> IO CInt
 foreign import ccall "libpd_add_float" libpd_add_float :: CFloat -> IO ()
 foreign import ccall "libpd_add_symbol" libpd_add_symbol :: CString -> IO ()
+
 type CPrintHook = CString -> IO ()
 foreign import ccall "wrapper"
    mkPrintHook :: CPrintHook -> IO (FunPtr CPrintHook)
@@ -96,3 +114,40 @@ foreign import ccall "libpd_exists" libpd_exists :: CString -> IO CInt
 
 foreign import ccall "libpd_bind" libpd_bind :: CString -> IO Binding
 foreign import ccall "libpd_unbind" libpd_unbind :: Binding -> IO ()
+
+
+
+
+
+----------------
+-- OpenAL
+----------------
+foreign import ccall "setOpenALSourcePositionRaw" setOpenALSourcePositionRaw :: OpenALSource -> Ptr CFloat -> IO ()
+foreign import ccall "setOpenALSourceOrientationRaw" setOpenALSourceOrientationRaw :: OpenALSource -> Ptr CFloat -> IO ()
+foreign import ccall "setOpenALListenerOrientationRaw" setOpenALListenerOrientationRaw :: Ptr CFloat -> IO ()
+foreign import ccall "setOpenALListenerPositionRaw" setOpenALListenerPositionRaw :: Ptr CFloat -> IO ()
+
+
+
+quaternionToUpAt :: (RealFloat a, Conjugate a) => Quaternion a -> (V3 a, V3 a)
+quaternionToUpAt quat = (rotate quat (V3 0 1 0), rotate quat (V3 0 0 (-1)))
+
+quaternionToUpAtList :: (RealFloat t, Conjugate t) => Quaternion t -> [t]
+quaternionToUpAtList quat = [uX, uY, uZ, aX, aY, aZ] 
+  where (V3 uX uY uZ, V3 aX aY aZ) = quaternionToUpAt quat
+
+alSourcePosition :: OpenALSource -> V3 CFloat -> IO ()
+alSourcePosition   sourceID (V3 x y z) = withArray [x,y,z] 
+  (setOpenALSourcePositionRaw sourceID)
+
+alSourceOrientation :: OpenALSource -> Quaternion CFloat -> IO ()
+alSourceOrientation sourceID quat = withArray (quaternionToUpAtList quat) 
+  (setOpenALSourceOrientationRaw sourceID)
+
+alListenerPosition :: V3 CFloat -> IO ()
+alListenerPosition          (V3 x y z) = withArray [x,y,z] 
+  setOpenALListenerPositionRaw
+
+alListenerOrientation :: Quaternion CFloat -> IO ()
+alListenerOrientation quat = withArray (quaternionToUpAtList quat)
+  setOpenALListenerOrientationRaw

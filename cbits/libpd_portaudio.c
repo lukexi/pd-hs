@@ -66,13 +66,13 @@ static int portAudioCallback( const void *inputBuffer, void *outputBuffer,
 }
 
 
-PaStream *startAudio(HsStablePtr pdChan) {
+void startAudio(HsStablePtr pdChan) {
 
     printf("PortAudio LibPd: Starting.\n");
 
     // init pd
     int sampleRate = SAMPLE_RATE;
-    int blcksize = libpd_blocksize();
+    int blockSize = libpd_blocksize();
 
     libpd_init();
     libpd_init_audio(NUM_CHANNELS_IN, NUM_CHANNELS_OUT, sampleRate); //one channel in, two channels out
@@ -88,7 +88,7 @@ PaStream *startAudio(HsStablePtr pdChan) {
 
     /* Initialize our data for use by callback. */
     data.pdChan = pdChan;
-    for (int i = 0; i < blcksize; i++) {
+    for (int i = 0; i < blockSize; i++) {
         data.outbuf[i] = 0;
     }
     printf("PortAudio LibPd: init.\n");
@@ -103,7 +103,7 @@ PaStream *startAudio(HsStablePtr pdChan) {
                                NUM_CHANNELS_OUT,          /* output channels */
                                paFloat32,  /* 32 bit floating point output */
                                SAMPLE_RATE,
-                               (long)blcksize,        /* frames per buffer */
+                               (long)blockSize,        /* frames per buffer */
                                portAudioCallback,
                                &data );
     if( err != paNoError ) goto error;
@@ -113,13 +113,14 @@ PaStream *startAudio(HsStablePtr pdChan) {
     if( err != paNoError ) goto error;
 
     printf("PortAudio LibPd: Returning stream.\n");
-    return stream;
+    //return stream;
+    return;
 
 error:
     Pa_Terminate();
     logPortAudioError(err);
 
-    return 0;
+    return;
 }
 
 void finishAudio(void *stream_) {

@@ -3,6 +3,7 @@
 module Sound.Pd.Core where
 import Sound.Pd.Internal
 import Foreign.C
+import Foreign.Marshal.Array
 import System.FilePath
 import Control.Applicative
 import Control.Monad
@@ -58,7 +59,7 @@ send pd patch receiver msg = sendGlobal pd (local patch receiver) msg
 
 -- | Sends a message to the given global receiver name
 sendGlobal :: PureData -> Receiver -> Message -> IO ()
-sendGlobal pd r msg = pdRun (pdChan pd) $ void $ sendGlobal' msg
+sendGlobal pd r msg = pdRun (pdThreadChan pd) $ void $ sendGlobal' msg
     where
     sendGlobal' Bang               = bang    r
     sendGlobal' (Atom (String s))  = symbol  r s
@@ -67,10 +68,9 @@ sendGlobal pd r msg = pdRun (pdChan pd) $ void $ sendGlobal' msg
     sendGlobal' (List args)        = list    r args
 
 data PureData = PureData 
-    { pdChannels :: TVar (Map Receiver (TChan Message))
-    , pdChan     :: PdChan
-    -- , pdAudio    :: ForeignPtr AudioOpaque 
-    } 
+    { pdChannels   :: TVar (Map Receiver (TChan Message))
+    , pdThreadChan :: PdChan
+    }
 
 -- | Returns the request receiver-channel for subscription, creating it if necessary (returning True if so, False otherwise)
 acquireChannel :: Receiver -> TVar (Map Receiver (TChan Message)) -> STM (TChan Message, Bool)
@@ -87,8 +87,9 @@ acquireChannel name channelsVar = do
 -- Libpd currently only supports one instance (but work is underway to fix this)
 initLibPd :: IO PureData
 initLibPd = do
+    -- Run all commands on the same thread, as libpd is not thread safe.
     runChan <- newChan
-    _ <- forkOS . forever $ join $ readChan runChan
+    _ <- forkOS . forever $ join (readChan runChan)
 
     channelsVar <- newTVarIO Map.empty
 
@@ -97,6 +98,7 @@ initLibPd = do
         "\n" -> putStrLn =<< modifyMVar  printBuffer (return . ("",))
         word ->              modifyMVar_ printBuffer (return . (++ word))
 
+    -- Set libpd's messages-from-pd hooks to write to a unified channel
     receiveChan <- newTChanIO
     let write = atomically . writeTChan receiveChan
     setBangHook    (\r     -> write (r, Bang))
@@ -110,13 +112,15 @@ initLibPd = do
         writeTChan channel msg
 
     libpd_init 
-    -- audio <- newForeignPtr finishAudio =<< startAudio =<< newStablePtr runChan
-    _audio <- startAudio =<< newStablePtr runChan
+    
+    -- IMPORTANT: This number must match NUM_SOURCES in libpd_openal.c
+    let numberOfOpenALSources = 4
+    sources <- peekArray numberOfOpenALSources =<< startAudio =<< newStablePtr runChan
+    putStrLn $ "Initialized OpenAL with " ++ show numberOfOpenALSources ++ " sources: " ++ show sources
 
     let pd = PureData 
-            { pdChannels=channelsVar
-            , pdChan=runChan
-            -- , pdAudio=audio
+            { pdChannels   = channelsVar
+            , pdThreadChan = runChan
             }
 
     return pd
@@ -148,7 +152,7 @@ newtype DollarZero = DollarZero Int
 
 -- | Spawn a new instance of the given patch name (sans .pd extension)
 makePatch :: PureData -> FilePath -> IO Patch
-makePatch pd fileName = pdRun (pdChan pd) $ do
+makePatch pd fileName = pdRun (pdThreadChan pd) $ do
     file <- openFile (fileName <.> "pd") "."
     dz   <- getDollarZero file
     return $ Patch file dz
@@ -163,7 +167,7 @@ makeWeakPatch pd fileName = do
     return patch
 
 closePatch :: PureData -> Patch -> IO ()
-closePatch pd (Patch file _) = pdRun (pdChan pd) $ closeFile file
+closePatch pd (Patch file _) = pdRun (pdThreadChan pd) $ closeFile file
 
 
 withPatch :: PureData -> FilePath -> (Patch -> IO a) -> IO a
