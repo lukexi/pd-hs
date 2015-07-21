@@ -1,0 +1,5 @@
+Mac includes OpenAL so things should just work out of the box.
+
+On Windows, you'll need OpenAL-soft http://kcat.strangesoft.net/openal.html#installing
+
+Copy bin/Win64/soft-oal.dll to c:\msys64\usr\local\bin\OpenAL32.dll

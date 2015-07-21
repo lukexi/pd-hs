@@ -64,7 +64,9 @@ library
       -DHAVE_ALLOCA_H
     extra-libraries: dl
   if os(mingw32)
-    extra-libraries: pthread msvcrt
+    include-dirs: include
+    extra-lib-dirs: c:\msys64\usr\local\bin
+    extra-libraries: pthread msvcrt OpenAL32
     cc-options:
       -DPA_USE_WMME
       -DMSW
