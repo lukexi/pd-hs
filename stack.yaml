@@ -1,0 +1,6 @@
+extra-deps: []
+resolver: nightly-2015-06-28
+flags: {}
+packages:
+- '.'
+arch: x86_64

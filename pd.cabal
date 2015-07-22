@@ -63,10 +63,10 @@ library
       -DHAVE_LIBDL
       -DHAVE_ALLOCA_H
     extra-libraries: dl
-  if os(mingw32)
+  if os(windows)
     include-dirs: include
-    extra-lib-dirs: c:\msys64\usr\local\bin
-    extra-libraries: pthread msvcrt OpenAL32
+    extra-lib-dirs: c:\msys64\usr\local\bin c:\msys64\mingw64\bin
+    extra-libraries: libwinpthread-1 msvcrt OpenAL32
     cc-options:
       -DPA_USE_WMME
       -DMSW

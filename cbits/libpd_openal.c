@@ -18,16 +18,11 @@
 #include "z_libpd.h"
 #include "Sound/Pd/Internal_stub.h"
 
-// Functions
-bool check_source_ready(ALuint sourceID);
-ALuint create_source();
-bool tick_source_stream(ALuint sourceID, int sourceNum);
-ALuint* startAudio(HsStablePtr pdChan);
-void *openal_thread_loop(void *threadArg);
+
 
 #define NUM_SOURCES 4
 #define NUM_BUFFERS 3
-#define BUFFER_SIZE 512
+#define BUFFER_SIZE 1024
 #define SAMPLE_RATE 44100
 #define FORMAT AL_FORMAT_MONO16
 
@@ -49,6 +44,14 @@ typedef struct {
   int numSourceIDs;
 } OpenALThreadData;
 
+// Function prototypes
+bool check_source_ready(ALuint sourceID);
+ALuint create_source();
+bool tick_source_stream(ALuint sourceID, int sourceNum);
+ALuint* startAudio(HsStablePtr pdChan);
+void *openal_thread_loop(void *threadArg);
+
+// Checks if an OpenAL source has finished processing any of its streaming buffers
 bool check_source_ready(ALuint sourceID) {
   ALint numBuffersToFill;
   alGetSourcei(sourceID, AL_BUFFERS_PROCESSED, &numBuffersToFill);
