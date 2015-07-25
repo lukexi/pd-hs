@@ -1,6 +1,7 @@
 import Sound.Pd1
 import Control.Concurrent
 import Control.Monad
+import Linear
 
 main :: IO ()
 main = do
@@ -22,6 +23,10 @@ main = do
     forkIO $ forM_ [400,410..1500] $ \freq -> do
         send p3 "freq" $ Atom $ Float (freq * 7)
         threadDelay 130000
+    forkIO $ forM_ [-1, -0.9..] $ \pos -> do
+        print $ "Listener now at " ++ show pos
+        alListenerPosition (V3 pos 0 0)
+        threadDelay 100000
     threadDelay 5000000
     
         

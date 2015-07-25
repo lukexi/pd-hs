@@ -15,7 +15,7 @@ import Foreign.StablePtr
 import Data.String
 import Data.Data
 import Control.Exception
-
+import Linear
 import System.Mem.Weak
 
 data Atom = String String | Float Float deriving Show
@@ -70,6 +70,7 @@ sendGlobal pd r msg = pdRun (pdThreadChan pd) $ void $ sendGlobal' msg
 data PureData = PureData 
     { pdChannels   :: TVar (Map Receiver (TChan Message))
     , pdThreadChan :: PdChan
+    , pdSources    :: [OpenALSource]
     }
 
 -- | Returns the request receiver-channel for subscription, creating it if necessary (returning True if so, False otherwise)
@@ -121,6 +122,7 @@ initLibPd = do
     let pd = PureData 
             { pdChannels   = channelsVar
             , pdThreadChan = runChan
+            , pdSources    = sources
             }
 
     return pd
@@ -336,3 +338,29 @@ bind receiver = withCString receiver libpd_bind
 unbind :: Binding -> IO ()
 unbind = libpd_unbind
 
+
+---------
+-- OpenAL
+---------
+quaternionToUpAt :: (RealFloat a, Conjugate a) => Quaternion a -> (V3 a, V3 a)
+quaternionToUpAt quat = (rotate quat (V3 0 1 0), rotate quat (V3 0 0 (-1)))
+
+quaternionToUpAtList :: (RealFloat t, Conjugate t) => Quaternion t -> [t]
+quaternionToUpAtList quat = [uX, uY, uZ, aX, aY, aZ] 
+  where (V3 uX uY uZ, V3 aX aY aZ) = quaternionToUpAt quat
+
+alSourcePosition :: OpenALSource -> V3 CFloat -> IO ()
+alSourcePosition   sourceID (V3 x y z) = withArray [x,y,z] 
+  (setOpenALSourcePositionRaw sourceID)
+
+--alSourceOrientation :: OpenALSource -> Quaternion CFloat -> IO ()
+--alSourceOrientation sourceID quat = withArray (quaternionToUpAtList quat) 
+--  (setOpenALSourceOrientationRaw sourceID)
+
+alListenerPosition :: V3 CFloat -> IO ()
+alListenerPosition          (V3 x y z) = withArray [x,y,z] 
+  setOpenALListenerPositionRaw
+
+alListenerOrientation :: Quaternion CFloat -> IO ()
+alListenerOrientation quat = withArray (quaternionToUpAtList quat)
+  setOpenALListenerOrientationRaw

@@ -2,12 +2,10 @@
 module Sound.Pd.Internal where
 import Foreign.C
 import Foreign.Ptr
-import Foreign.Marshal.Array
 import Foreign.StablePtr
 import Foreign.Storable
 import Control.Concurrent
 import Control.Monad
-import Linear
 
 newtype OpenALSource = OpenALSource CUInt deriving (Show, Storable)
 
@@ -123,31 +121,10 @@ foreign import ccall "libpd_unbind" libpd_unbind :: Binding -> IO ()
 -- OpenAL
 ----------------
 foreign import ccall "setOpenALSourcePositionRaw" setOpenALSourcePositionRaw :: OpenALSource -> Ptr CFloat -> IO ()
-foreign import ccall "setOpenALSourceOrientationRaw" setOpenALSourceOrientationRaw :: OpenALSource -> Ptr CFloat -> IO ()
+--foreign import ccall "setOpenALSourceOrientationRaw" setOpenALSourceOrientationRaw :: OpenALSource -> Ptr CFloat -> IO ()
 foreign import ccall "setOpenALListenerOrientationRaw" setOpenALListenerOrientationRaw :: Ptr CFloat -> IO ()
 foreign import ccall "setOpenALListenerPositionRaw" setOpenALListenerPositionRaw :: Ptr CFloat -> IO ()
 
 
 
-quaternionToUpAt :: (RealFloat a, Conjugate a) => Quaternion a -> (V3 a, V3 a)
-quaternionToUpAt quat = (rotate quat (V3 0 1 0), rotate quat (V3 0 0 (-1)))
 
-quaternionToUpAtList :: (RealFloat t, Conjugate t) => Quaternion t -> [t]
-quaternionToUpAtList quat = [uX, uY, uZ, aX, aY, aZ] 
-  where (V3 uX uY uZ, V3 aX aY aZ) = quaternionToUpAt quat
-
-alSourcePosition :: OpenALSource -> V3 CFloat -> IO ()
-alSourcePosition   sourceID (V3 x y z) = withArray [x,y,z] 
-  (setOpenALSourcePositionRaw sourceID)
-
-alSourceOrientation :: OpenALSource -> Quaternion CFloat -> IO ()
-alSourceOrientation sourceID quat = withArray (quaternionToUpAtList quat) 
-  (setOpenALSourceOrientationRaw sourceID)
-
-alListenerPosition :: V3 CFloat -> IO ()
-alListenerPosition          (V3 x y z) = withArray [x,y,z] 
-  setOpenALListenerPositionRaw
-
-alListenerOrientation :: Quaternion CFloat -> IO ()
-alListenerOrientation quat = withArray (quaternionToUpAtList quat)
-  setOpenALListenerOrientationRaw

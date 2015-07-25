@@ -8,11 +8,17 @@ module Sound.Pd (
     sendGlobal,
     Atom(..),
     Message(..),
-    PureData,
+    PureData(pdSources),
     Patch,
     Receiver,
+    OpenALSource,
     makeReceiveChan,
     subscribe,
-    local
+    local,
+    alSourcePosition,
+    --alSourceOrientation,
+    alListenerPosition,
+    alListenerOrientation
     ) where
 import Sound.Pd.Core
+import Sound.Pd.Internal

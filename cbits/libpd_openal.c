@@ -161,6 +161,7 @@ ALuint* startAudio(HsStablePtr pdChan) {
   
   for (int i = 0; i < NUM_SOURCES; ++i) {
     allSourceIDs[i] = create_source();
+    printf("Created source with ID: %i\n", allSourceIDs[i]);
   }
 
   OpenALThreadData *threadData = (OpenALThreadData *)malloc(sizeof(OpenALThreadData));
@@ -226,16 +227,51 @@ void *openal_thread_loop(void *threadArg) {
 }
 
 
-// Expose API simply to Haskell
+// Wrap OpenAL API for easier use with Haskell's FFI
 void setOpenALSourcePositionRaw(ALuint sourceID, ALfloat *values) {
+  // printf("Source %i Position: (%f %f %f)\n", sourceID, values[0],values[1],values[2]);
   alSourcefv(sourceID, AL_POSITION, values);
+  checkALError();
 }
-void setOpenALSourceOrientationRaw(ALuint sourceID, ALfloat *values) {
-  alSourcefv(sourceID, AL_ORIENTATION, values);
-}
-void setOpenALListenerPositionRaw(ALuint sourceID, ALfloat *values) {
+// Oops, can't set source orientations, only listener's
+// void setOpenALSourceOrientationRaw(ALuint sourceID, ALfloat *values) {
+//   // printf("Source %i UP: (%f %f %f) AT: (%f %f %f)\n", sourceID, values[0],values[1],values[2],values[3],values[4],values[5]);
+//   alSourcefv(sourceID, AL_ORIENTATION, values);
+//   checkALError();
+// }
+void setOpenALListenerPositionRaw(ALfloat *values) {
   alListenerfv(AL_POSITION, values);
 }
-void setOpenALListenerOrientationRaw(ALuint sourceID, ALfloat *values) {
+void setOpenALListenerOrientationRaw(ALfloat *values) {
+  // printf("Orientation UP: (%f %f %f) AT: (%f %f %f)\n", values[0],values[1],values[2],values[3],values[4],values[5]);
   alListenerfv(AL_ORIENTATION, values);
+}
+
+void checkALError(void) {
+  
+  ALenum error = alGetError();
+  switch(error) {
+    case AL_NO_ERROR:
+      break;                              
+
+    case AL_INVALID_NAME:
+      printf("OpenAL Error: Invalid name\n");
+      break;                          
+
+    case AL_INVALID_ENUM:
+      printf("OpenAL Error: Invalid enum\n");
+      break;                          
+
+    case AL_INVALID_VALUE:
+      printf("OpenAL Error: Invalid value\n");
+      break;                         
+
+    case AL_INVALID_OPERATION:
+      printf("OpenAL Error: Invalid operation\n");
+      break;                     
+
+    case AL_OUT_OF_MEMORY:
+      printf("OpenAL Error: Out of memory\n");
+      break;                         
+  }
 }

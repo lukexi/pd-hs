@@ -9,11 +9,18 @@ module Sound.Pd1 (
     makeReceiveChan,
     Pd.local,
     Pd.Atom(..),
-    Pd.Message(..)
+    Pd.Message(..),
+    Pd.OpenALSource,
+    Pd.alSourcePosition,
+    --Pd.alSourceOrientation,
+    Pd.alListenerPosition,
+    Pd.alListenerOrientation,
+    getPdSources
     ) where
 import qualified Sound.Pd as Pd
 
 import Control.Concurrent
+import Control.Concurrent.STM
 import System.IO.Unsafe
 import Data.IORef
 
@@ -23,6 +30,11 @@ pdRef = unsafePerformIO $ newIORef =<< Pd.initLibPd
 
 getPd :: IO Pd.PureData
 getPd = readIORef pdRef
+
+getPdSources :: IO [Pd.OpenALSource]
+getPdSources = do
+    pd <- getPd
+    return $ Pd.pdSources pd
 
 makePatch :: FilePath -> IO Pd.Patch
 makePatch fileName = do
@@ -49,6 +61,7 @@ send patch receiver msg = do
     pd <- getPd
     Pd.send pd patch receiver msg
 
+makeReceiveChan :: Pd.Receiver -> IO (TChan Pd.Message)
 makeReceiveChan name = do
     pd <- getPd
     Pd.makeReceiveChan pd name
