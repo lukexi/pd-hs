@@ -1,4 +1,12 @@
-Mac includes OpenAL so things should just work out of the box.
+First, 
+`
+git clone --recursive git@github.com:libpd/libpd.git
+cd libpd
+make EXTRA=true
+make install
+`
+
+Mac includes OpenAL so things should then just work out of the box.
 
 On Windows, you'll need OpenAL-soft http://kcat.strangesoft.net/openal.html#installing
 

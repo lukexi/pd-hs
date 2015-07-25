@@ -50,6 +50,7 @@ ALuint create_source();
 bool tick_source_stream(ALuint sourceID, int sourceNum);
 ALuint* startAudio(HsStablePtr pdChan);
 void *openal_thread_loop(void *threadArg);
+void checkALError(void);
 
 // Checks if an OpenAL source has finished processing any of its streaming buffers
 bool check_source_ready(ALuint sourceID) {
