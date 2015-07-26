@@ -1,5 +1,5 @@
 {-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, LambdaCase, TupleSections, DeriveDataTypeable #-}
-
+{-# LANGUAGE ViewPatterns #-}
 module Sound.Pd.Core where
 import Sound.Pd.Internal
 import Foreign.C
@@ -7,6 +7,7 @@ import Foreign.Marshal.Array
 import System.FilePath
 import Control.Applicative
 import Control.Monad
+import Control.Monad.Trans
 import Control.Concurrent
 import Control.Concurrent.STM
 import Data.Map (Map)
@@ -345,22 +346,18 @@ unbind = libpd_unbind
 quaternionToUpAt :: (RealFloat a, Conjugate a) => Quaternion a -> (V3 a, V3 a)
 quaternionToUpAt quat = (rotate quat (V3 0 1 0), rotate quat (V3 0 0 (-1)))
 
-quaternionToUpAtList :: (RealFloat t, Conjugate t) => Quaternion t -> [t]
+quaternionToUpAtList :: (RealFloat a, Conjugate a) => Quaternion a -> [a]
 quaternionToUpAtList quat = [uX, uY, uZ, aX, aY, aZ] 
   where (V3 uX uY uZ, V3 aX aY aZ) = quaternionToUpAt quat
 
-alSourcePosition :: OpenALSource -> V3 CFloat -> IO ()
-alSourcePosition   sourceID (V3 x y z) = withArray [x,y,z] 
+alSourcePosition :: (MonadIO m, RealFloat a) => OpenALSource -> V3 a -> m ()
+alSourcePosition   sourceID (fmap realToFrac -> V3 x y z) = liftIO $ withArray [x,y,z] 
   (setOpenALSourcePositionRaw sourceID)
 
---alSourceOrientation :: OpenALSource -> Quaternion CFloat -> IO ()
---alSourceOrientation sourceID quat = withArray (quaternionToUpAtList quat) 
---  (setOpenALSourceOrientationRaw sourceID)
-
-alListenerPosition :: V3 CFloat -> IO ()
-alListenerPosition          (V3 x y z) = withArray [x,y,z] 
+alListenerPosition :: (MonadIO m, RealFloat a) => V3 a -> m ()
+alListenerPosition          (fmap realToFrac -> V3 x y z) = liftIO $ withArray [x,y,z] 
   setOpenALListenerPositionRaw
 
-alListenerOrientation :: Quaternion CFloat -> IO ()
-alListenerOrientation quat = withArray (quaternionToUpAtList quat)
+alListenerOrientation :: (MonadIO m, RealFloat a) => Quaternion a -> m ()
+alListenerOrientation quat = liftIO $ withArray (quaternionToUpAtList (realToFrac <$> quat))
   setOpenALListenerOrientationRaw
