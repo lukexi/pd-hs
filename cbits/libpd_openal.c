@@ -4,6 +4,7 @@
 #else
 #include <OpenAL/al.h>
 #include <OpenAL/alc.h>
+#include <OpenAL/MacOSX_OALExtensions.h>
 #endif
 
 #include <stdio.h>
@@ -159,6 +160,14 @@ ALuint* startAudio(HsStablePtr pdChan) {
     return allSourceIDs;
   }
 
+  #if defined(_WIN32)
+  // TODO OpenAL-soft HRTF enable here
+  #else
+  static alcMacOSXRenderingQualityProcPtr alcMacOSXRenderingQuality = NULL;
+  alcMacOSXRenderingQuality = (alcMacOSXRenderingQualityProcPtr) alcGetProcAddress(NULL, (const ALCchar*) "alcMacOSXRenderingQuality");
+  alcMacOSXRenderingQuality(ALC_MAC_OSX_SPATIAL_RENDERING_QUALITY_HIGH);
+  #endif
+
   
   for (int i = 0; i < NUM_SOURCES; ++i) {
     allSourceIDs[i] = create_source();
@@ -234,13 +243,9 @@ void setOpenALSourcePositionRaw(ALuint sourceID, ALfloat *values) {
   alSourcefv(sourceID, AL_POSITION, values);
   checkALError();
 }
-// Oops, can't set source orientations, only listener's
-// void setOpenALSourceOrientationRaw(ALuint sourceID, ALfloat *values) {
-//   // printf("Source %i UP: (%f %f %f) AT: (%f %f %f)\n", sourceID, values[0],values[1],values[2],values[3],values[4],values[5]);
-//   alSourcefv(sourceID, AL_ORIENTATION, values);
-//   checkALError();
-// }
+
 void setOpenALListenerPositionRaw(ALfloat *values) {
+  // printf("Listener Position (note: we are inverting x in Haskell binding): (%f %f %f)\n", values[0],values[1],values[2]);
   alListenerfv(AL_POSITION, values);
 }
 void setOpenALListenerOrientationRaw(ALfloat *values) {
