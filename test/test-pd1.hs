@@ -23,7 +23,7 @@ main = do
     _ <- forkIO $ forM_ [400,410..1500] $ \freq -> do
         send p3 "freq" $ Atom $ Float (freq * 7)
         threadDelay 130000
-    _ <- forkIO $ forM_ [-1, -0.9..] $ \pos -> do
+    _ <- forkIO $ forM_ [-5, -0.9..] $ \pos -> do
         print $ "Listener now at " ++ show pos
         alListenerPosition (V3 pos 0 0)
         threadDelay 100000

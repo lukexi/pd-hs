@@ -344,22 +344,22 @@ unbind = libpd_unbind
 -- OpenAL
 ---------
 quaternionToUpAt :: (RealFloat a, Conjugate a) => Quaternion a -> (V3 a, V3 a)
-quaternionToUpAt quat = (rotate quat (V3 0 1 0), rotate quat (V3 0 0 (-1)))
+quaternionToUpAt quat = ( rotate quat (V3 0 (-1) 0) -- I expected to want 0 1 0, but this gives us correct results
+                        , rotate quat (V3 0 0 (-1))
+                        )
 
 quaternionToUpAtList :: (RealFloat a, Conjugate a) => Quaternion a -> [a]
 quaternionToUpAtList quat = [uX, uY, uZ, aX, aY, aZ] 
   where (V3 uX uY uZ, V3 aX aY aZ) = quaternionToUpAt quat
 
 alSourcePosition :: (MonadIO m, RealFloat a) => OpenALSource -> V3 a -> m ()
-alSourcePosition   sourceID (fmap realToFrac -> V3 x y z) = liftIO $ withArray [invertedX,y,z] 
+alSourcePosition   sourceID (fmap realToFrac -> V3 x y z) = liftIO $ withArray [x,y,z] 
   (setOpenALSourcePositionRaw sourceID)
-  where invertedX = (-x)
+
 
 alListenerPosition :: (MonadIO m, RealFloat a) => V3 a -> m ()
-alListenerPosition          (fmap realToFrac -> V3 x y z) = liftIO $ withArray [invertedX,y,z] 
+alListenerPosition          (fmap realToFrac -> V3 x y z) = liftIO $ withArray [x,y,z] 
   setOpenALListenerPositionRaw
-  -- I have no idea why this is necessary, but OpenAL seems to invert this even though it claims a RHS coordinate system???
-  where invertedX = (-x)
 
 alListenerOrientation :: (MonadIO m, RealFloat a) => Quaternion a -> m ()
 alListenerOrientation quat = liftIO $ withArray (quaternionToUpAtList (realToFrac <$> quat))
