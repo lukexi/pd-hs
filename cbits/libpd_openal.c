@@ -14,16 +14,15 @@
 #include <stdlib.h>
 #include <math.h>
 #include <pthread.h>
+#include <time.h>
 #include <stdbool.h>
 
 #include "z_libpd.h"
 #include "Sound/Pd/Internal_stub.h"
 
-
-
-#define NUM_SOURCES 4
+#define NUM_SOURCES 16
 #define NUM_BUFFERS 3
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 2048
 #define SAMPLE_RATE 44100
 #define FORMAT AL_FORMAT_MONO16
 
@@ -35,6 +34,9 @@
 #define PD_TICKS (BUFFER_SIZE/PD_BLOCK_SIZE)
 
 #define PD_BUFFER_SIZE (BUFFER_SIZE * NUM_SOURCES)
+
+#define NSEC_PER_SEC 1000000000
+#define THREAD_SLEEP_NSEC ((BUFFER_SIZE/SAMPLE_RATE) * NSEC_PER_SEC / 2)
 
 short tempBuffer[BUFFER_SIZE];
 short pdBuffer[PD_BUFFER_SIZE];
@@ -233,6 +235,7 @@ void *openal_thread_loop(void *threadArg) {
       
       }
     }
+    nanosleep((struct timespec[]){{0, THREAD_SLEEP_NSEC}}, NULL);
   }
 }
 
