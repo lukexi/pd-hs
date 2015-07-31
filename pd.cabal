@@ -58,6 +58,7 @@ library
     include-dirs: include
     extra-lib-dirs: c:\msys64\usr\local\bin c:\msys64\mingw64\bin
     extra-libraries: libwinpthread-1 libpd OpenAL32
+    c-sources: cbits/openal_soft_reverb.c
   
   include-dirs:
     libpd/libpd_wrapper

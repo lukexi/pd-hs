@@ -20,6 +20,11 @@
 #include "z_libpd.h"
 #include "Sound/Pd/Internal_stub.h"
 
+#if defined(_WIN32)
+// From openal_soft_reverb.c
+int add_reverb(ALuint* allSourceIDs, int numSourceIDs);
+#endif
+
 #define NUM_SOURCES 16
 #define NUM_BUFFERS 3
 #define BUFFER_SIZE 2048
@@ -175,6 +180,10 @@ ALuint* startAudio(HsStablePtr pdChan) {
     allSourceIDs[i] = create_source();
     printf("Created source with ID: %i\n", allSourceIDs[i]);
   }
+
+  #if defined(_WIN32)
+  add_reverb(allSourceIDs, NUM_SOURCES);
+  #endif
 
   OpenALThreadData *threadData = (OpenALThreadData *)malloc(sizeof(OpenALThreadData));
   threadData->allSourceIDs = allSourceIDs;
