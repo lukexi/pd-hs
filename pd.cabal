@@ -54,6 +54,7 @@ library
   if os(darwin)
     frameworks: Foundation AudioToolbox AudioUnit Accelerate CoreAudio Carbon OpenAL
     extra-libraries: pd
+    c-sources: cbits/openal_mac_reverb.c
   if os(windows)
     include-dirs: include
     extra-lib-dirs: c:\msys64\usr\local\bin c:\msys64\mingw64\bin
