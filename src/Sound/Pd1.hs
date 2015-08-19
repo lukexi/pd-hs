@@ -13,7 +13,8 @@ module Sound.Pd1 (
     Pd.Receiver,
     Pd.Atom(..),
     Pd.Message(..),
-    Pd.getNextVoice,
+    Pd.PolyPatch(..),
+    Pd.getPolyVoice,
     Pd.OpenALSource,
     Pd.alSourcePosition,
     Pd.alListenerPosition,
@@ -44,7 +45,7 @@ makePatch fileName = do
     pd <- getPd
     Pd.makePatch pd fileName
 
-makePolyPatch :: Int -> FilePath -> IO (MVar [Pd.Patch])
+makePolyPatch :: Int -> FilePath -> IO Pd.PolyPatch
 makePolyPatch count fileName = do
     pd <- getPd
     Pd.makePolyPatch pd count fileName

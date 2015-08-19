@@ -7,6 +7,7 @@ module Sound.Pd (
     send,
     sendGlobal,
     Atom(..),
+    PolyPatch(..),
     Message(..),
     PureData(pdSources),
     Patch,
@@ -16,7 +17,7 @@ module Sound.Pd (
     subscribe,
     local,
     makePolyPatch,
-    getNextVoice,
+    getPolyVoice,
     alSourcePosition,
     alListenerPosition,
     alListenerOrientation

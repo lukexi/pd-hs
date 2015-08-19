@@ -342,13 +342,16 @@ unbind = libpd_unbind
 ------------
 -- Polyphony
 ------------
-makePolyPatch :: PureData -> Int -> FilePath -> IO (MVar [Patch])
-makePolyPatch pd count patchName = 
-  newMVar =<< replicateM count (makePatch pd patchName)
+
+newtype PolyPatch = PolyPatch {unPolyPatch::MVar [Patch]}
+
+makePolyPatch :: PureData -> Int -> FilePath -> IO PolyPatch
+makePolyPatch pd count patchName = PolyPatch <$>
+  (newMVar =<< replicateM count (makePatch pd patchName))
 
 -- | Round-robin voice allocation
-getNextVoice :: MonadIO m => MVar [Patch] -> m Patch
-getNextVoice voices = liftIO $ modifyMVar voices $ \(v:vs) -> return (vs++[v], v)
+getPolyVoice :: MonadIO m => PolyPatch -> m Patch
+getPolyVoice (PolyPatch voices) = liftIO $ modifyMVar voices $ \(v:vs) -> return (vs++[v], v)
 
 ---------
 -- OpenAL
