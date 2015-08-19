@@ -15,8 +15,9 @@ module Sound.Pd (
     makeReceiveChan,
     subscribe,
     local,
+    makePolyPatch,
+    getNextVoice,
     alSourcePosition,
-    --alSourceOrientation,
     alListenerPosition,
     alListenerOrientation
     ) where

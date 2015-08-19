@@ -1,5 +1,6 @@
 module Sound.Pd1 (
     makePatch,
+    makePolyPatch,
     makeWeakPatch,
     withPatch,
     closePatch,
@@ -8,11 +9,13 @@ module Sound.Pd1 (
     subscribe,
     makeReceiveChan,
     Pd.local,
+    Pd.Patch,
+    Pd.Receiver,
     Pd.Atom(..),
     Pd.Message(..),
+    Pd.getNextVoice,
     Pd.OpenALSource,
     Pd.alSourcePosition,
-    --Pd.alSourceOrientation,
     Pd.alListenerPosition,
     Pd.alListenerOrientation,
     getPdSources
@@ -40,6 +43,11 @@ makePatch :: FilePath -> IO Pd.Patch
 makePatch fileName = do
     pd <- getPd
     Pd.makePatch pd fileName
+
+makePolyPatch :: Int -> FilePath -> IO (MVar [Pd.Patch])
+makePolyPatch count fileName = do
+    pd <- getPd
+    Pd.makePolyPatch pd count fileName
 
 withPatch :: FilePath -> (Pd.Patch -> IO a) -> IO a
 withPatch fileName action = do

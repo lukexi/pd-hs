@@ -339,6 +339,16 @@ bind receiver = withCString receiver libpd_bind
 unbind :: Binding -> IO ()
 unbind = libpd_unbind
 
+------------
+-- Polyphony
+------------
+makePolyPatch :: PureData -> Int -> FilePath -> IO (MVar [Patch])
+makePolyPatch pd count patchName = 
+  newMVar =<< replicateM count (makePatch pd patchName)
+
+-- | Round-robin voice allocation
+getNextVoice :: MonadIO m => MVar [Patch] -> m Patch
+getNextVoice voices = liftIO $ modifyMVar voices $ \(v:vs) -> return (vs++[v], v)
 
 ---------
 -- OpenAL
