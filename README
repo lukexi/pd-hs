@@ -6,6 +6,12 @@ make EXTRA=true
 make install
 `
 
+On Windows, copy the lib from /usr/local/lib to /usr/local/bin
+where my other dlls are
+`
+cp /usr/local/lib/libpd.dll /usr/local/bin
+`
+
 Mac includes OpenAL so things should then just work out of the box.
 
 On Windows, you'll need OpenAL-soft http://kcat.strangesoft.net/openal.html#installing
