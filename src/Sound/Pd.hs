@@ -4,6 +4,7 @@ module Sound.Pd (
     withPatch,
     closePatch,
     initLibPd,
+    addToLibPdSearchPath,
     send,
     sendGlobal,
     Atom(..),

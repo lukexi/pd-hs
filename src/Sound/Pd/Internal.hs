@@ -55,6 +55,8 @@ processShort stablePdChan ticks inBuffer outBuffer = do
 
 foreign import ccall "libpd_init" libpd_init :: IO ()
 
+foreign import ccall "libpd_add_to_search_path" libpd_add_to_search_path :: CString -> IO ()
+
 foreign import ccall "libpd_openfile" libpd_openfile :: CString -> CString -> IO File
 
 foreign import ccall "libpd_closefile" libpd_closefile :: File -> IO ()

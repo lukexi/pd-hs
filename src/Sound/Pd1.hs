@@ -19,6 +19,7 @@ module Sound.Pd1 (
     Pd.alSourcePosition,
     Pd.alListenerPosition,
     Pd.alListenerOrientation,
+    addToLibPdSearchPath,
     getPdSources
     ) where
 import qualified Sound.Pd as Pd
@@ -39,6 +40,12 @@ getPdSources :: IO [Pd.OpenALSource]
 getPdSources = do
     pd <- getPd
     return $ Pd.pdSources pd
+
+addToLibPdSearchPath :: FilePath -> IO ()
+addToLibPdSearchPath path = do
+    -- We just need to get Pd here to make sure LibPd is initialized before we add to its search path
+    _pd <- getPd
+    Pd.addToLibPdSearchPath path
 
 makePatch :: FilePath -> IO Pd.Patch
 makePatch fileName = do

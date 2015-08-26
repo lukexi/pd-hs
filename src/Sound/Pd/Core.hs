@@ -176,6 +176,13 @@ closePatch pd (Patch file _) = pdRun (pdThreadChan pd) $ closeFile file
 withPatch :: PureData -> FilePath -> (Patch -> IO a) -> IO a
 withPatch pd name = bracket (makePatch pd name) (closePatch pd)
 
+
+-- | Add a directory to the searchpath to find Pd patches in
+addToLibPdSearchPath :: String -> IO ()
+addToLibPdSearchPath dir = 
+    withCString dir $ \d -> 
+    libpd_add_to_search_path d
+
 -- | Open the given filename in the given dir
 openFile :: String -> String -> IO File
 openFile name dir = 
