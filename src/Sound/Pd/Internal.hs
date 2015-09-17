@@ -27,11 +27,15 @@ pdRun chan action = do
     writeChan chan (action >>= putMVar result)
     takeMVar result
 
-foreign import ccall "startAudio" startAudio :: StablePtr PdChan -> IO (Ptr OpenALSource)
+foreign import ccall "startAudio" 
+  startAudio :: CInt -> CInt -> StablePtr PdChan -> IO (Ptr OpenALSource)
 
-foreign import ccall "libpd_process_float"  libpd_process_float  :: CInt -> Ptr CFloat  -> Ptr CFloat  -> IO CInt
-foreign import ccall "libpd_process_double" libpd_process_double :: CInt -> Ptr CDouble -> Ptr CDouble -> IO CInt
-foreign import ccall "libpd_process_short"  libpd_process_short  :: CInt -> Ptr CShort  -> Ptr CShort  -> IO CInt
+foreign import ccall "libpd_process_float"  
+  libpd_process_float  :: CInt -> Ptr CFloat  -> Ptr CFloat  -> IO CInt
+foreign import ccall "libpd_process_double" 
+  libpd_process_double :: CInt -> Ptr CDouble -> Ptr CDouble -> IO CInt
+foreign import ccall "libpd_process_short"  
+  libpd_process_short  :: CInt -> Ptr CShort  -> Ptr CShort  -> IO CInt
 
 
 foreign export ccall processFloat :: StablePtr PdChan -> CInt -> Ptr CFloat -> Ptr CFloat -> IO ()
