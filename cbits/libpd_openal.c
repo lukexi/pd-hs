@@ -24,14 +24,9 @@
 // (we link one or the other per platform)
 int add_reverb(ALuint* allSourceIDs, int numSourceIDs);
 
-#define NUM_BUFFERS 3
-
 #define SAMPLE_RATE 44100.0
 
 #define FORMAT AL_FORMAT_MONO16
-
-#define SAMPLE_TIME ((double)1/(double)SAMPLE_RATE)
-// #define BLOCK_TIME (BUFFER_SIZE*SAMPLE_TIME)
 
 #define PD_NUM_INPUTS 0
 #define PD_BLOCK_SIZE 64
@@ -60,12 +55,7 @@ bool tick_source_stream(ALuint sourceID, int sourceNum, OpenALThreadData *thread
 void *openal_thread_loop(void *threadArg);
 void checkALError(void);
 
-// Checks if an OpenAL source has finished processing any of its streaming buffers
-bool check_source_ready(ALuint sourceID) {
-  ALint numBuffersToFill;
-  alGetSourcei(sourceID, AL_BUFFERS_PROCESSED, &numBuffersToFill);
-  return numBuffersToFill > 0;
-}
+
 
 ALuint create_source(int bufferSize, int numBuffers) {
   short *emptyBuffer = calloc(bufferSize, sizeof(short));
@@ -81,7 +71,7 @@ ALuint create_source(int bufferSize, int numBuffers) {
   }
 
   // Fill the buffers with initial data
-  for (int i = 0; i < numBuffers; ++i) {
+  for (int i = 0; i < numBuffers; i++) {
     alBufferData(sourceBufferIDs[i], FORMAT, emptyBuffer, bufferSize * sizeof(short), SAMPLE_RATE);
   }
   free(emptyBuffer);
@@ -102,43 +92,6 @@ ALuint create_source(int bufferSize, int numBuffers) {
   return sourceID;
 }
 
-bool tick_source_stream(ALuint sourceID, int sourceNum, OpenALThreadData *threadData) {
-  int numSources = threadData->numSources;
-  int bufferSize = threadData->bufferSize;
-  ALint numBuffersToFill;
-  alGetSourcei(sourceID, AL_BUFFERS_PROCESSED, &numBuffersToFill);
-  if(numBuffersToFill <= 0) {
-    return false;
-  }
-
-  // printf("%i Getting %i buffers\n", sourceID, numBuffersToFill);
-  
-  // NOTE: I'm not paying attention to numBuffersToFill; we only fill one buffer each tick.
-
-  // Copy interleaved output of pd into OpenAL buffer for this source
-  // TODO: SIMD this
-  for (int n = 0; n < bufferSize; ++n) {
-    threadData->tempBuffer[n] = threadData->pdBuffer[sourceNum + (n * numSources)];
-  }
-  
-  // sine_into_buffer(tempBuffer, bufferSize, freq, tOffset);
-  ALuint bufferID;
-  alSourceUnqueueBuffers(sourceID, 1, &bufferID);
-  alBufferData(bufferID, FORMAT, threadData->tempBuffer, bufferSize * sizeof(short), SAMPLE_RATE);
-  alSourceQueueBuffers(sourceID, 1, &bufferID);
-  if(alGetError() != AL_NO_ERROR) {
-    fprintf(stderr, "Error buffering :(\n");
-    return false;
-  }
-  
-  ALint isPlaying;
-  alGetSourcei(sourceID, AL_SOURCE_STATE, &isPlaying);
-  if(isPlaying != AL_PLAYING) {
-    printf("Restarting play\n");
-    alSourcePlay(sourceID);
-  }
-  return true;
-}
 
 
 
@@ -193,7 +146,7 @@ ALuint* startAudio(int numSources, int bufferSize, HsStablePtr pdChan) {
   threadData->tempBuffer      = calloc(bufferSize, sizeof(short));
   threadData->pdBuffer        = calloc(pdBufferSize, sizeof(short));
   threadData->pdTicks         = bufferSize/PD_BLOCK_SIZE;
-  threadData->threadSleepNsec = ((double)bufferSize/SAMPLE_RATE) * NSEC_PER_SEC / 4;
+  threadData->threadSleepNsec = ((double)bufferSize/SAMPLE_RATE) * NSEC_PER_SEC / 2;
   printf("Sleep time is %i nanoseconds\n", threadData->threadSleepNsec);
 
   // Spread the sources out
@@ -217,45 +170,104 @@ void *openal_thread_loop(void *threadArg) {
   const ALuint* allSourceIDs = threadData->allSourceIDs;
   const int numSources = threadData->numSources;
 
+  // Pd processes all our channels at once, so we need all OpenAL sources
+  // to be ready to receive the next Pd tick's worth of audio data.
+  // Thus we wait for all OpenAL sources to have at least one buffer ready to fill
+  // before performing a Pd tick.
   while (1) {
-    // We want to wait until *all* sources are ready for new data, 
-    // not just one, so we can fill them all at once.
+    // printf("Beginning tick...\n");
+    
+    // If, after performing a tick, all sources are still ready, then immediately fill
+    // them again without the thread sleep so as to not fall further and further behind.
+    bool shouldContinueFilling = true;
+    while (shouldContinueFilling) {
 
-    // Continuously check each source to see if it has buffers ready to fill
-    int numSourcesReady = 0;
-    for (int i = 0; i < numSources; ++i) {
-      ALuint sourceID = allSourceIDs[i];
-      if (check_source_ready(sourceID)) {
-        numSourcesReady++;
-      }
-    }
-    // Once all have reported they're ready, fill them all.
-    // We fill them here with varying enveloped sine frequencies.
-    if (numSourcesReady == numSources) {
-
-      // buffer size is num channels * num ticks * num samples per tick (libpd_blocksize(), default 64)
-      // samples are interleaved, so 
-      // l0 r0 f0 l1 r1 f1 l2 r2 f2
-      // sample(n) = pdBuffer[sourceNum + (n * numSources)]
-
-      // libpd_process_short(pdTicks, 0, pdBuffer);
-      // Call into Haskell to ensure processing occurs 
-      // on the dedicated thread we create for libpd
-      processShort(
-          threadData->pdChan, 
-          threadData->pdTicks, 0, 
-          threadData->pdBuffer);
-
+      // Continuously check each source to see if it has buffers ready to fill
+      int numSourcesReady = 0;
       for (int i = 0; i < numSources; ++i) {
-        
         ALuint sourceID = allSourceIDs[i];
-        tick_source_stream(sourceID, i, threadData);
-      
+        if (check_source_ready(sourceID)) {
+          numSourcesReady++;
+        }
+      }
+      // Once all have reported they're ready, fill them all.
+      // We fill them here with varying enveloped sine frequencies.
+      if (numSourcesReady >= numSources) {
+        // printf("Filling...\n");
+        // buffer size is num channels * num ticks * num samples per tick (libpd_blocksize(), default 64)
+        // samples are interleaved, so 
+        // l0 r0 f0 l1 r1 f1 l2 r2 f2
+        // sample(n) = pdBuffer[sourceNum + (n * numSources)]
+
+        // libpd_process_short(pdTicks, 0, pdBuffer);
+        // Call into Haskell to ensure processing occurs 
+        // on the dedicated thread we create for libpd
+        processShort(
+            threadData->pdChan, 
+            threadData->pdTicks, 0, 
+            threadData->pdBuffer);
+
+        for (int i = 0; i < numSources; ++i) {
+          
+          ALuint sourceID = allSourceIDs[i];
+          tick_source_stream(sourceID, i, threadData);
+        
+        }
+      } else {
+        // printf("Done filling, Num sources ready is %i\n", numSourcesReady);
+        shouldContinueFilling = false;
       }
     }
+    // Wait a portion of the buffer size so as to not peg CPU
     nanosleep((struct timespec[]){{0, threadData->threadSleepNsec}}, NULL);
   }
 }
+
+// Checks if an OpenAL source has finished processing any of its streaming buffers
+bool check_source_ready(ALuint sourceID) {
+  ALint numBuffersToFill;
+  alGetSourcei(sourceID, AL_BUFFERS_PROCESSED, &numBuffersToFill);
+  return numBuffersToFill > 0;
+}
+
+bool tick_source_stream(ALuint sourceID, int sourceNum, OpenALThreadData *threadData) {
+  int numSources = threadData->numSources;
+  int bufferSize = threadData->bufferSize;
+  ALint numBuffersToFill;
+  alGetSourcei(sourceID, AL_BUFFERS_PROCESSED, &numBuffersToFill);
+  if(numBuffersToFill <= 0) {
+    return false;
+  }
+
+  // printf("%i Getting %i buffers\n", sourceID, numBuffersToFill);
+  
+  // NOTE: I'm not paying attention to numBuffersToFill; we only fill one buffer each tick.
+
+  // Copy interleaved output of pd into OpenAL buffer for this source
+  // TODO: SIMD this
+  for (int n = 0; n < bufferSize; ++n) {
+    threadData->tempBuffer[n] = threadData->pdBuffer[sourceNum + (n * numSources)];
+  }
+  
+  // sine_into_buffer(tempBuffer, bufferSize, freq, tOffset);
+  ALuint bufferID;
+  alSourceUnqueueBuffers(sourceID, 1, &bufferID);
+  alBufferData(bufferID, FORMAT, threadData->tempBuffer, bufferSize * sizeof(short), SAMPLE_RATE);
+  alSourceQueueBuffers(sourceID, 1, &bufferID);
+  if(alGetError() != AL_NO_ERROR) {
+    fprintf(stderr, "Error buffering :(\n");
+    return false;
+  }
+  
+  ALint isPlaying;
+  alGetSourcei(sourceID, AL_SOURCE_STATE, &isPlaying);
+  if(isPlaying != AL_PLAYING) {
+    printf("Restarting play\n");
+    alSourcePlay(sourceID);
+  }
+  return true;
+}
+
 
 
 // Wrap OpenAL API for easier use with Haskell's FFI
