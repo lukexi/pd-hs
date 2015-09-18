@@ -136,7 +136,7 @@ ALuint* startAudio(int numSources, int bufferSize, HsStablePtr pdChan) {
     printf("Created source with ID: %i\n", allSourceIDs[i]);
   }
 
-  // add_reverb(allSourceIDs, numSources);
+  add_reverb(allSourceIDs, numSources);
 
   OpenALThreadData *threadData = (OpenALThreadData *)malloc(sizeof(OpenALThreadData));
   threadData->allSourceIDs    = allSourceIDs;
