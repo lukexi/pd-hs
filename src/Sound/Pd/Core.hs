@@ -16,7 +16,7 @@ import Foreign.StablePtr
 import Data.String
 import Data.Data
 import Control.Exception
-import Linear
+import Linear.Extra
 import System.Mem.Weak
 
 data Atom = String String | Float Float deriving Show
@@ -120,7 +120,7 @@ initLibPd = do
     sources <- peekArray (fromIntegral numberOfOpenALSources) 
         =<< startAudio numberOfOpenALSources 128 
         =<< newStablePtr runChan
-    putStrLn $ "Initialized OpenAL with " ++ show numberOfOpenALSources ++ " sources: " ++ show sources
+    -- putStrLn $ "Initialized OpenAL with " ++ show numberOfOpenALSources ++ " sources: " ++ show sources
 
     let pd = PureData 
             { pdChannels   = channelsVar
@@ -378,6 +378,9 @@ alSourcePosition :: (MonadIO m, RealFloat a) => OpenALSource -> V3 a -> m ()
 alSourcePosition   sourceID (fmap realToFrac -> V3 x y z) = liftIO $ withArray [x,y,z] 
   (setOpenALSourcePositionRaw sourceID)
 
+alListenerPose (Pose position orientation) = do
+    alListenerPosition position
+    alListenerOrientation orientation
 
 alListenerPosition :: (MonadIO m, RealFloat a) => V3 a -> m ()
 alListenerPosition          (fmap realToFrac -> V3 x y z) = liftIO $ withArray [x,y,z] 

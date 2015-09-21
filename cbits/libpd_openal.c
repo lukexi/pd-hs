@@ -133,7 +133,7 @@ ALuint* startAudio(int numSources, int bufferSize, HsStablePtr pdChan) {
   
   for (int i = 0; i < numSources; ++i) {
     allSourceIDs[i] = create_source(bufferSize, numSources);
-    printf("Created source with ID: %i\n", allSourceIDs[i]);
+    // printf("Created source with ID: %i\n", allSourceIDs[i]);
   }
 
   add_reverb(allSourceIDs, numSources);
@@ -147,7 +147,7 @@ ALuint* startAudio(int numSources, int bufferSize, HsStablePtr pdChan) {
   threadData->pdBuffer        = calloc(pdBufferSize, sizeof(short));
   threadData->pdTicks         = bufferSize/PD_BLOCK_SIZE;
   threadData->threadSleepNsec = ((double)bufferSize/SAMPLE_RATE) * NSEC_PER_SEC / 2;
-  printf("Sleep time is %i nanoseconds\n", threadData->threadSleepNsec);
+  printf("OpenAL thread sleep time is %i nanoseconds\n", threadData->threadSleepNsec);
 
   // Spread the sources out
   for (int i = 0; i < numSources; ++i) {

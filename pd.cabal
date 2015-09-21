@@ -28,7 +28,7 @@ test-suite test-pd1
     default-language:    Haskell2010
     main-is: test-pd1.hs
     hs-source-dirs:      test
-    build-depends: base, pd, linear
+    build-depends: base, pd, linear-extra
     ghc-options: -Wall -O2 -threaded
 
 test-suite test-al
@@ -36,7 +36,7 @@ test-suite test-al
     default-language:    Haskell2010
     main-is: test-al.hs
     hs-source-dirs:      test
-    build-depends: base, pd, linear
+    build-depends: base, pd, linear-extra
     ghc-options: -Wall -O2 -threaded
 
 test-suite test-interactive
@@ -45,7 +45,7 @@ test-suite test-interactive
     main-is: test-interactive.hs
     hs-source-dirs:      test
     build-depends: 
-      base, pd, linear, 
+      base, pd, linear-extra, 
       game-pal, gl, glfw-pal, random
     ghc-options: -Wall -O2 -threaded
 
@@ -57,7 +57,7 @@ library
     Sound.Pd.Internal
   -- other-modules:
   -- other-extensions:
-  build-depends:       base, filepath, stm, containers, linear, mtl
+  build-depends:       base, filepath, stm, containers, linear-extra, mtl
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-prof-options:    -Wall -O2 -fprof-auto

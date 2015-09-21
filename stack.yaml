@@ -10,4 +10,6 @@ packages:
 - '../gl-pal'
 - '../oculus-mini'
 - '../hydra-hs'
+- '../linear-extra'
+- '../lens-extra'
 arch: x86_64
