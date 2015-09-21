@@ -19,6 +19,7 @@ module Sound.Pd1 (
     Pd.alSourcePosition,
     Pd.alListenerPosition,
     Pd.alListenerOrientation,
+    Pd.alListenerPose,
     addToLibPdSearchPath,
     getPdSources
     ) where

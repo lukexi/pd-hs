@@ -21,7 +21,8 @@ module Sound.Pd (
     getPolyVoice,
     alSourcePosition,
     alListenerPosition,
-    alListenerOrientation
+    alListenerOrientation,
+    alListenerPose
     ) where
 import Sound.Pd.Core
 import Sound.Pd.Internal
