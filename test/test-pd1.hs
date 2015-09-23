@@ -1,7 +1,7 @@
 import Sound.Pd1
 import Control.Concurrent
 import Control.Monad
-import Linear
+import Linear.Extra
 
 main :: IO ()
 main = do

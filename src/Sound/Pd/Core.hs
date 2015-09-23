@@ -115,8 +115,7 @@ initLibPd = do
 
     libpd_init 
     
-    -- IMPORTANT: This number must match NUM_SOURCES in libpd_openal.c
-    let numberOfOpenALSources = 16
+    let numberOfOpenALSources = 32
     sources <- peekArray (fromIntegral numberOfOpenALSources) 
         =<< startAudio numberOfOpenALSources 128 
         =<< newStablePtr runChan

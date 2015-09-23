@@ -34,7 +34,7 @@ int add_reverb(ALuint* allSourceIDs, int numSourceIDs);
 
 #define NSEC_PER_SEC 1000000000
 
-
+#define NUM_BUFFERS_PER_SOURCE 15
 
 typedef struct {
   HsStablePtr pdChan;
@@ -50,20 +50,20 @@ typedef struct {
 // Function prototypes
 ALuint* startAudio(int numSources, int bufferSize, HsStablePtr pdChan);
 bool check_source_ready(ALuint sourceID);
-ALuint create_source(int bufferSize, int numBuffers);
+ALuint create_source(int bufferSize);
 bool tick_source_stream(ALuint sourceID, int sourceNum, OpenALThreadData *threadData);
 void *openal_thread_loop(void *threadArg);
 void checkALError(void);
 
 
 
-ALuint create_source(int bufferSize, int numBuffers) {
+ALuint create_source(int bufferSize) {
   short *emptyBuffer = calloc(bufferSize, sizeof(short));
   ALuint sourceID;
-  ALuint sourceBufferIDs[numBuffers];
+  ALuint sourceBufferIDs[NUM_BUFFERS_PER_SOURCE];
 
   // Create our buffers and source
-  alGenBuffers(numBuffers, sourceBufferIDs);
+  alGenBuffers(NUM_BUFFERS_PER_SOURCE, sourceBufferIDs);
   alGenSources(1, &sourceID);
   if(alGetError() != AL_NO_ERROR) {
     fprintf(stderr, "Error generating :(\n");
@@ -71,7 +71,7 @@ ALuint create_source(int bufferSize, int numBuffers) {
   }
 
   // Fill the buffers with initial data
-  for (int i = 0; i < numBuffers; i++) {
+  for (int i = 0; i < NUM_BUFFERS_PER_SOURCE; i++) {
     alBufferData(sourceBufferIDs[i], FORMAT, emptyBuffer, bufferSize * sizeof(short), SAMPLE_RATE);
   }
   free(emptyBuffer);
@@ -82,7 +82,7 @@ ALuint create_source(int bufferSize, int numBuffers) {
   }
 
   // Queue the initial buffers so we have something to dequeue and begin playing
-  alSourceQueueBuffers(sourceID, numBuffers, sourceBufferIDs);
+  alSourceQueueBuffers(sourceID, NUM_BUFFERS_PER_SOURCE, sourceBufferIDs);
   alSourcePlay(sourceID);
 
   if(alGetError() != AL_NO_ERROR) {
@@ -132,8 +132,8 @@ ALuint* startAudio(int numSources, int bufferSize, HsStablePtr pdChan) {
 
   
   for (int i = 0; i < numSources; ++i) {
-    allSourceIDs[i] = create_source(bufferSize, numSources);
-    // printf("Created source with ID: %i\n", allSourceIDs[i]);
+    allSourceIDs[i] = create_source(bufferSize);
+    printf("Created source with ID: %i\n", allSourceIDs[i]);
   }
 
   add_reverb(allSourceIDs, numSources);

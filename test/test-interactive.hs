@@ -28,7 +28,7 @@ keyToNote =
 
 main :: IO ()
 main = do
-  GamePal{..} <- initGamePal "Pd Interactive" []
+  GamePal{..} <- initGamePal "Pd Interactive" NoGCPerFrame []
 
   patch <- makePatch "test/test-interactive"
   
