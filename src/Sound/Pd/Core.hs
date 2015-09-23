@@ -55,12 +55,12 @@ local :: Patch -> Receiver -> Receiver
 local (Patch _ (DollarZero dz)) receiver = show dz ++ receiver
 
 -- | Sends a message to the patch-local ($0-prepended) version of the given receiver name
-send :: PureData -> Patch -> Receiver -> Message -> IO ()
+send :: MonadIO m => PureData -> Patch -> Receiver -> Message -> m ()
 send pd patch receiver msg = sendGlobal pd (local patch receiver) msg
 
 -- | Sends a message to the given global receiver name
-sendGlobal :: PureData -> Receiver -> Message -> IO ()
-sendGlobal pd r msg = pdRun (pdThreadChan pd) $ void $ sendGlobal' msg
+sendGlobal :: MonadIO m => PureData -> Receiver -> Message -> m ()
+sendGlobal pd r msg = liftIO $ pdRun (pdThreadChan pd) $ void $ sendGlobal' msg
     where
     sendGlobal' Bang               = bang    r
     sendGlobal' (Atom (String s))  = symbol  r s
@@ -87,8 +87,8 @@ acquireChannel name channelsVar = do
 
 -- | Create a libpd instance. Must be called before anything else.
 -- Libpd currently only supports one instance (but work is underway to fix this)
-initLibPd :: IO PureData
-initLibPd = do
+initLibPd :: MonadIO m => m PureData
+initLibPd = liftIO $ do
     -- Run all commands on the same thread, as libpd is not thread safe.
     runChan <- newChan
     _ <- forkOS . forever $ join (readChan runChan)
@@ -129,8 +129,8 @@ initLibPd = do
 
     return pd
 
-makeReceiveChan :: PureData -> Receiver -> IO (TChan Message)
-makeReceiveChan (PureData {pdChannels=channelsVar}) name = do
+makeReceiveChan :: MonadIO m => PureData -> Receiver -> m (TChan Message)
+makeReceiveChan (PureData {pdChannels=channelsVar}) name = liftIO $ do
     (channel, isNew) <- atomically $ do
         (bChan, isNew) <- acquireChannel name channelsVar
         chan <- dupTChan bChan
@@ -139,8 +139,8 @@ makeReceiveChan (PureData {pdChannels=channelsVar}) name = do
     return channel
 
 -- | Subscribe to a given receiver name's output.
-subscribe :: PureData -> Receiver -> (Message -> IO a) -> IO ThreadId
-subscribe pd name handler = do
+subscribe :: MonadIO m => PureData -> Receiver -> (Message -> IO a) -> m ThreadId
+subscribe pd name handler = liftIO $ do
     channel <- makeReceiveChan pd name
     forkIO . forever $ 
         handler =<< atomically (readTChan channel)
@@ -155,23 +155,23 @@ data Patch = Patch { phFile :: File, phDollarZero :: DollarZero } deriving Typea
 newtype DollarZero = DollarZero Int
 
 -- | Spawn a new instance of the given patch name (sans .pd extension)
-makePatch :: PureData -> FilePath -> IO Patch
-makePatch pd fileName = pdRun (pdThreadChan pd) $ do
+makePatch :: MonadIO m => PureData -> FilePath -> m Patch
+makePatch pd fileName = liftIO $ pdRun (pdThreadChan pd) $ do
     file <- openFile (fileName <.> "pd") "."
     dz   <- getDollarZero file
     return $ Patch file dz
 
 -- | This should work, but doesn't seem to work perfectly with Halive yet
-makeWeakPatch :: PureData -> FilePath -> IO Patch
-makeWeakPatch pd fileName = do
+makeWeakPatch :: MonadIO m => PureData -> FilePath -> m Patch
+makeWeakPatch pd fileName = liftIO $ do
     patch@(Patch file _) <- makePatch pd fileName
     addFinalizer patch $ do
         putStrLn $ "Closing weak patch: " ++ fileName
         closeFile file
     return patch
 
-closePatch :: PureData -> Patch -> IO ()
-closePatch pd (Patch file _) = pdRun (pdThreadChan pd) $ closeFile file
+closePatch :: MonadIO m => PureData -> Patch -> m ()
+closePatch pd (Patch file _) = liftIO $ pdRun (pdThreadChan pd) $ closeFile file
 
 
 withPatch :: PureData -> FilePath -> (Patch -> IO a) -> IO a
@@ -179,8 +179,8 @@ withPatch pd name = bracket (makePatch pd name) (closePatch pd)
 
 
 -- | Add a directory to the searchpath to find Pd patches in
-addToLibPdSearchPath :: String -> IO ()
-addToLibPdSearchPath dir = 
+addToLibPdSearchPath :: MonadIO m => String -> m ()
+addToLibPdSearchPath dir = liftIO $ 
     withCString dir $ \d -> 
     libpd_add_to_search_path d
 
@@ -203,25 +203,25 @@ getDollarZero file = DollarZero . fromIntegral <$> libpd_getdollarzero file
 -------------------
 
 -- | Send a bang to the given receiver name
-bang :: Receiver -> IO Int
-bang receiver = fromIntegral <$> 
+bang :: MonadIO m => Receiver -> m Int
+bang receiver = liftIO $ fromIntegral <$> 
     withCString receiver libpd_bang
 
 -- | Send a float to the given receiver name
-float :: Receiver -> Float -> IO Int
-float receiver f = fromIntegral <$> 
+float :: MonadIO m => Receiver -> Float -> m Int
+float receiver f = liftIO $ fromIntegral <$> 
     withCString receiver (\r -> libpd_float r (realToFrac f))
 
 -- | Send a symbol to the given receiver name
-symbol :: Receiver -> String -> IO Int
-symbol receiver sym = fromIntegral <$> 
+symbol :: MonadIO m => Receiver -> String -> m Int
+symbol receiver sym = liftIO $ fromIntegral <$> 
     withCString receiver (\r -> 
     withCString sym      (\s -> 
     libpd_symbol r s))
 
 -- | Send a message (a selector with arguments) to the given receiver name
-message :: Receiver -> String -> [Atom] -> IO Int
-message receiver sel args = do
+message :: MonadIO m => Receiver -> String -> [Atom] -> m Int
+message receiver sel args = liftIO $ do
     _ <- startMessage $ length args
     forM_ args $ \case
         String s -> addSymbol s
@@ -229,8 +229,8 @@ message receiver sel args = do
     finishMessage receiver sel
 
 -- | Send a list to the given receiver name
-list :: Receiver -> [Atom] -> IO Int
-list receiver args = do
+list :: MonadIO m => Receiver -> [Atom] -> m Int
+list receiver args = liftIO $ do
     _ <- startMessage $ length args
     forM_ args $ \case
         String s -> addSymbol s
@@ -353,8 +353,8 @@ unbind = libpd_unbind
 
 newtype PolyPatch = PolyPatch {unPolyPatch::MVar [Patch]}
 
-makePolyPatch :: PureData -> Int -> FilePath -> IO PolyPatch
-makePolyPatch pd count patchName = PolyPatch <$>
+makePolyPatch :: MonadIO m => PureData -> Int -> FilePath -> m PolyPatch
+makePolyPatch pd count patchName = liftIO $ PolyPatch <$>
   (newMVar =<< replicateM count (makePatch pd patchName))
 
 -- | Round-robin voice allocation
@@ -377,6 +377,7 @@ alSourcePosition :: (MonadIO m, RealFloat a) => OpenALSource -> V3 a -> m ()
 alSourcePosition   sourceID (fmap realToFrac -> V3 x y z) = liftIO $ withArray [x,y,z] 
   (setOpenALSourcePositionRaw sourceID)
 
+alListenerPose :: (MonadIO m, RealFloat a) => Pose a -> m ()
 alListenerPose (Pose position orientation) = do
     alListenerPosition position
     alListenerOrientation orientation
