@@ -20,6 +20,7 @@ module Sound.Pd1 (
     Pd.alListenerPosition,
     Pd.alListenerOrientation,
     Pd.alListenerPose,
+    Pd.alListenerGain,
     addToLibPdSearchPath,
     getPdSources
     ) where

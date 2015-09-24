@@ -286,6 +286,10 @@ void setOpenALListenerOrientationRaw(ALfloat *values) {
   alListenerfv(AL_ORIENTATION, values);
 }
 
+void setOpenALListenerGainRaw(ALfloat value) {
+  alListenerf(AL_GAIN, value);
+}
+
 void checkALError(void) {
   
   ALenum error = alGetError();

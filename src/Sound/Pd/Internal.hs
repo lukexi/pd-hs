@@ -133,4 +133,4 @@ foreign import ccall "setOpenALListenerPositionRaw" setOpenALListenerPositionRaw
 
 
 
-
+foreign import ccall "setOpenALListenerGainRaw" setOpenALListenerGainRaw :: CFloat -> IO ()

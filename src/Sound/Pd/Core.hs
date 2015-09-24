@@ -115,7 +115,7 @@ initLibPd = liftIO $ do
 
     libpd_init 
     
-    let numberOfOpenALSources = 32
+    let numberOfOpenALSources = 16
     sources <- peekArray (fromIntegral numberOfOpenALSources) 
         =<< startAudio numberOfOpenALSources 128 
         =<< newStablePtr runChan
@@ -389,3 +389,6 @@ alListenerPosition          (fmap realToFrac -> V3 x y z) = liftIO $ withArray [
 alListenerOrientation :: (MonadIO m, RealFloat a) => Quaternion a -> m ()
 alListenerOrientation quat = liftIO $ withArray (quaternionToUpAtList (realToFrac <$> quat))
   setOpenALListenerOrientationRaw
+
+alListenerGain :: (MonadIO m, RealFloat a) => a -> m ()
+alListenerGain gain = liftIO $ setOpenALListenerGainRaw (realToFrac gain)
