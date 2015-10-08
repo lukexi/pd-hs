@@ -133,7 +133,7 @@ ALuint* startAudio(int numSources, int bufferSize, HsStablePtr pdChan) {
   
   for (int i = 0; i < numSources; ++i) {
     allSourceIDs[i] = create_source(bufferSize);
-    printf("Created source with ID: %i\n", allSourceIDs[i]);
+    //printf("Created source with ID: %i\n", allSourceIDs[i]);
   }
 
   add_reverb(allSourceIDs, numSources);
