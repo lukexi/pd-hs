@@ -5,6 +5,8 @@ import Sound.Pd.Internal
 import Foreign.C
 import Foreign.Marshal.Array
 import System.FilePath
+import System.Directory
+import System.Environment
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Trans
@@ -392,3 +394,18 @@ alListenerOrientation quat = liftIO $ withArray (quaternionToUpAtList (realToFra
 
 alListenerGain :: (MonadIO m, RealFloat a) => a -> m ()
 alListenerGain gain = liftIO $ setOpenALListenerGainRaw (realToFrac gain)
+
+copyOpenALHRTFs :: IO (Either IOException ())
+copyOpenALHRTFs = liftIO . try $ do
+  mAppDataDir <- lookup "APPDATA" <$> getEnvironment
+
+  forM_ mAppDataDir $ \appDataDir -> do
+    let openALDir      = "openal"   </> "hrtf"
+        appDataHRTFDir = appDataDir </> openALDir
+
+    createDirectoryIfMissing True appDataHRTFDir
+
+    contents <- filter (not . (`elem` [".", ".."])) <$> getDirectoryContents openALDir
+    forM_ contents $ \file -> do
+      putStrLn $ "Copying " ++ (openALDir </> file) ++ " to " ++ (appDataHRTFDir </> file)
+      copyFile (openALDir </> file) (appDataHRTFDir </> file)

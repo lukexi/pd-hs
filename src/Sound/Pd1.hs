@@ -21,6 +21,7 @@ module Sound.Pd1 (
     Pd.alListenerOrientation,
     Pd.alListenerPose,
     Pd.alListenerGain,
+    Pd.copyOpenALHRTFs,
     addToLibPdSearchPath,
     getPdSources
     ) where

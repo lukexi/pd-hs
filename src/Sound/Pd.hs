@@ -23,7 +23,8 @@ module Sound.Pd (
     alListenerPosition,
     alListenerOrientation,
     alListenerPose,
-    alListenerGain
+    alListenerGain,
+    copyOpenALHRTFs
     ) where
 import Sound.Pd.Core
 import Sound.Pd.Internal
