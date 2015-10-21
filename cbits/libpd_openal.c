@@ -262,7 +262,7 @@ bool tick_source_stream(ALuint sourceID, int sourceNum, OpenALThreadData *thread
   ALint isPlaying;
   alGetSourcei(sourceID, AL_SOURCE_STATE, &isPlaying);
   if(isPlaying != AL_PLAYING) {
-    printf("Restarting play\n");
+    // printf("Restarting play\n");
     alSourcePlay(sourceID);
   }
   return true;
