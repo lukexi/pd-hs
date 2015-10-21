@@ -407,5 +407,5 @@ copyOpenALHRTFs = liftIO . try $ do
 
     contents <- filter (not . (`elem` [".", ".."])) <$> getDirectoryContents openALDir
     forM_ contents $ \file -> do
-      putStrLn $ "Copying " ++ (openALDir </> file) ++ " to " ++ (appDataHRTFDir </> file)
+      -- putStrLn $ "Copying " ++ (openALDir </> file) ++ " to " ++ (appDataHRTFDir </> file)
       copyFile (openALDir </> file) (appDataHRTFDir </> file)
