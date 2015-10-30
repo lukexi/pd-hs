@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include <pthread.h>
 #include <time.h>
@@ -22,27 +23,29 @@
 
 // From openal_soft_reverb.c or openal_mac_reverb.c
 // (we link one or the other per platform)
-int add_reverb(ALuint* allSourceIDs, int numSourceIDs);
+int add_reverb(ALuint *allSourceIDs, int numSourceIDs);
 
 #define SAMPLE_RATE 44100.0
 
 #define FORMAT AL_FORMAT_MONO16
 
-#define PD_NUM_INPUTS 0
+#define PD_NUM_INPUTS 1
 #define PD_BLOCK_SIZE 64
 
 
 #define NSEC_PER_SEC 1000000000
 
-#define NUM_BUFFERS_PER_SOURCE 15
+#define NUM_BUFFERS_PER_SOURCE 16
 
 typedef struct {
   HsStablePtr pdChan;
+  ALCdevice *inputDevice;
   ALuint *allSourceIDs;
   int numSources;
   int bufferSize;
   short *tempBuffer;
-  short *pdBuffer;
+  short *pdInBuffer;
+  short *pdOutBuffer;
   int pdTicks;
   int threadSleepNsec;
 } OpenALThreadData;
@@ -52,51 +55,14 @@ ALuint* startAudio(int numSources, int bufferSize, HsStablePtr pdChan);
 bool check_source_ready(ALuint sourceID);
 ALuint create_source(int bufferSize);
 bool tick_source_stream(ALuint sourceID, int sourceNum, OpenALThreadData *threadData);
-void *openal_thread_loop(void *threadArg);
+void *openal_thread_start(void *threadArg);
+void openal_thread_loop(void *threadArg);
 void checkALError(void);
-
-
-
-ALuint create_source(int bufferSize) {
-  short *emptyBuffer = calloc(bufferSize, sizeof(short));
-  ALuint sourceID;
-  ALuint sourceBufferIDs[NUM_BUFFERS_PER_SOURCE];
-
-  // Create our buffers and source
-  alGenBuffers(NUM_BUFFERS_PER_SOURCE, sourceBufferIDs);
-  alGenSources(1, &sourceID);
-  if(alGetError() != AL_NO_ERROR) {
-    fprintf(stderr, "Error generating :(\n");
-    return 1;
-  }
-
-  // Fill the buffers with initial data
-  for (int i = 0; i < NUM_BUFFERS_PER_SOURCE; i++) {
-    alBufferData(sourceBufferIDs[i], FORMAT, emptyBuffer, bufferSize * sizeof(short), SAMPLE_RATE);
-  }
-  free(emptyBuffer);
-  
-  if(alGetError() != AL_NO_ERROR) {
-    fprintf(stderr, "Error loading :(\n");
-    return 1;
-  }
-
-  // Queue the initial buffers so we have something to dequeue and begin playing
-  alSourceQueueBuffers(sourceID, NUM_BUFFERS_PER_SOURCE, sourceBufferIDs);
-  alSourcePlay(sourceID);
-
-  if(alGetError() != AL_NO_ERROR) {
-    fprintf(stderr, "Error starting :(\n");
-    return 1;
-  }
-  return sourceID;
-}
-
-
-
+void checkALCError(ALCdevice *device);
 
 ALuint* startAudio(int numSources, int bufferSize, HsStablePtr pdChan) {
-  const int pdBufferSize = bufferSize * numSources;
+  const int pdOutBufferSize = bufferSize * numSources;
+  const int pdInBufferSize  = bufferSize * PD_NUM_INPUTS;
   
   libpd_init();
   libpd_init_audio(PD_NUM_INPUTS, numSources, SAMPLE_RATE);
@@ -112,26 +78,52 @@ ALuint* startAudio(int numSources, int bufferSize, HsStablePtr pdChan) {
 
   device = alcOpenDevice(NULL);
   if(!device) {
+    checkALError();
     fprintf(stderr, "Couldn't open OpenAL device :-(\n");
     return allSourceIDs;
   }
   context = alcCreateContext(device, NULL);
-  alcMakeContextCurrent(context);
+  checkALError();
   if(!context) {
     fprintf(stderr, "Couldn't create OpenAL context :-(\n");
     return allSourceIDs;
   }
+  alcMakeContextCurrent(context);
+  checkALError();
 
   // Open the input device for capturing microphone/line-in
-  ALCdevice *inputDevice = alcCaptureOpenDevice(NULL, SAMPLE_RATE, FORMAT, SAMPLE_RATE/2);
 
+
+  // Get list of available Capture Devices
+  const ALchar *deviceList = alcGetString(NULL, ALC_CAPTURE_DEVICE_SPECIFIER);
+  if (deviceList)
+  {
+      printf("\nAvailable Capture Devices are:\n");
+
+      while (*deviceList)
+      {
+          printf("%s\n", deviceList);
+          deviceList += strlen(deviceList) + 1;
+      }
+  }
+  const ALchar *defaultCaptureDevice = alcGetString(NULL, ALC_CAPTURE_DEFAULT_DEVICE_SPECIFIER);
+  printf("\nDefault Capture Device is '%s'\n\n", defaultCaptureDevice);
+
+  ALCdevice *inputDevice = alcCaptureOpenDevice(NULL, SAMPLE_RATE, FORMAT, SAMPLE_RATE);
+  if (!inputDevice) {
+    fprintf(stderr, "Couldn't get an input device :-(\n");
+  }
+  checkALCError(inputDevice);
+  alcCaptureStart(inputDevice);
+  checkALCError(inputDevice);
 
   // Enable HRTF spatialization
   #if defined(_WIN32)
   // TODO OpenAL-soft HRTF enable here
   #else
   static alcMacOSXRenderingQualityProcPtr alcMacOSXRenderingQuality = NULL;
-  alcMacOSXRenderingQuality = (alcMacOSXRenderingQualityProcPtr) alcGetProcAddress(NULL, (const ALCchar*) "alcMacOSXRenderingQuality");
+  alcMacOSXRenderingQuality = 
+    (alcMacOSXRenderingQualityProcPtr)alcGetProcAddress(NULL, (const ALCchar*)"alcMacOSXRenderingQuality");
   alcMacOSXRenderingQuality(ALC_MAC_OSX_SPATIAL_RENDERING_QUALITY_HIGH);
   #endif
 
@@ -145,14 +137,16 @@ ALuint* startAudio(int numSources, int bufferSize, HsStablePtr pdChan) {
 
   OpenALThreadData *threadData = (OpenALThreadData *)malloc(sizeof(OpenALThreadData));
   threadData->allSourceIDs    = allSourceIDs;
+  threadData->inputDevice     = inputDevice;
   threadData->pdChan          = pdChan;
   threadData->numSources      = numSources;
   threadData->bufferSize      = bufferSize;
-  threadData->tempBuffer      = calloc(bufferSize, sizeof(short));
-  threadData->pdBuffer        = calloc(pdBufferSize, sizeof(short));
+  threadData->tempBuffer      = calloc(bufferSize,      sizeof(short));
+  threadData->pdOutBuffer     = calloc(pdOutBufferSize, sizeof(short));
+  threadData->pdInBuffer      = calloc(pdInBufferSize,  sizeof(short));
   threadData->pdTicks         = bufferSize/PD_BLOCK_SIZE;
-  threadData->threadSleepNsec = ((double)bufferSize/SAMPLE_RATE) * NSEC_PER_SEC / 2;
-  // printf("OpenAL thread sleep time is %i nanoseconds\n", threadData->threadSleepNsec);
+  threadData->threadSleepNsec = ((double)bufferSize/SAMPLE_RATE) * NSEC_PER_SEC;
+  printf("OpenAL thread sleep time is %f seconds\n", (double)threadData->threadSleepNsec / NSEC_PER_SEC);
 
   // Spread the sources out
   for (int i = 0; i < numSources; ++i) {
@@ -165,12 +159,66 @@ ALuint* startAudio(int numSources, int bufferSize, HsStablePtr pdChan) {
   }
 
   pthread_t thread;
-  pthread_create(&thread, NULL, openal_thread_loop, (void *)threadData);
+  pthread_create(&thread, NULL, openal_thread_start, (void *)threadData);
 
   return allSourceIDs;
 }
 
-void *openal_thread_loop(void *threadArg) {
+ALuint create_source(int bufferSize) {
+  ALuint sourceID;
+  ALuint sourceBufferIDs[NUM_BUFFERS_PER_SOURCE];
+
+  // Create our buffers and source
+  alGenBuffers(NUM_BUFFERS_PER_SOURCE, sourceBufferIDs);
+  alGenSources(1, &sourceID);
+  if(alGetError() != AL_NO_ERROR) {
+    fprintf(stderr, "Error generating :(\n");
+    return 1;
+  }
+
+  // Fill the buffers with initial data
+  short *emptyBuffer = calloc(bufferSize, sizeof(short));
+  for (int i = 0; i < NUM_BUFFERS_PER_SOURCE; i++) {
+    alBufferData(sourceBufferIDs[i], FORMAT, emptyBuffer, bufferSize * sizeof(short), SAMPLE_RATE);
+  }
+  free(emptyBuffer);
+  
+  if(alGetError() != AL_NO_ERROR) {
+    fprintf(stderr, "Error loading :(\n");
+    return 1;
+  }
+
+  // Assign the source's bufferIDs to its sourceID to be dequeued later and begin playing
+  alSourceQueueBuffers(sourceID, NUM_BUFFERS_PER_SOURCE, sourceBufferIDs);
+  alSourcePlay(sourceID);
+
+  if(alGetError() != AL_NO_ERROR) {
+    fprintf(stderr, "Error starting :(\n");
+    return 1;
+  }
+  return sourceID;
+}
+
+bool allSourcesReady(const ALuint* allSourceIDs, const int numSources) {
+  // Continuously check each source to see if it has buffers ready to fill
+  int numSourcesReady = 0;
+  for (int i = 0; i < numSources; ++i) {
+    ALuint sourceID = allSourceIDs[i];
+    if (check_source_ready(sourceID)) {
+      numSourcesReady++;
+    }
+  }
+  printf("Num sources ready: %i\n", numSourcesReady);
+  return numSourcesReady >= numSources;
+}
+
+void *openal_thread_start(void *threadArg) {
+  while (1) {
+    openal_thread_loop(threadArg);
+  }
+}
+
+void openal_thread_loop(void *threadArg) {
   OpenALThreadData *threadData = (OpenALThreadData *)threadArg;
   const ALuint* allSourceIDs = threadData->allSourceIDs;
   const int numSources = threadData->numSources;
@@ -179,53 +227,63 @@ void *openal_thread_loop(void *threadArg) {
   // to be ready to receive the next Pd tick's worth of audio data.
   // Thus we wait for all OpenAL sources to have at least one buffer ready to fill
   // before performing a Pd tick.
-  while (1) {
+
+  // Once all have reported they're ready, fill them all.
+  bool shouldFill = allSourcesReady(allSourceIDs, numSources);
+  if (!shouldFill)
+  {
+    printf("Thread woken but no sources ready\n");
+  }
+  int numberOfFills = 0;
+  while (shouldFill) {
+    numberOfFills++;
     // printf("Beginning tick...\n");
     
     // If, after performing a tick, all sources are still ready, then immediately fill
     // them again without the thread sleep so as to not fall further and further behind.
-    bool shouldContinueFilling = true;
-    while (shouldContinueFilling) {
+      
+    // printf("Filling...\n");
+    
+    alcCaptureSamples(threadData->inputDevice, threadData->pdInBuffer, threadData->bufferSize);
 
-      // Continuously check each source to see if it has buffers ready to fill
-      int numSourcesReady = 0;
-      for (int i = 0; i < numSources; ++i) {
-        ALuint sourceID = allSourceIDs[i];
-        if (check_source_ready(sourceID)) {
-          numSourcesReady++;
-        }
-      }
-      // Once all have reported they're ready, fill them all.
-      // We fill them here with varying enveloped sine frequencies.
-      if (numSourcesReady >= numSources) {
-        // printf("Filling...\n");
-        // buffer size is num channels * num ticks * num samples per tick (libpd_blocksize(), default 64)
-        // samples are interleaved, so 
-        // l0 r0 f0 l1 r1 f1 l2 r2 f2
-        // sample(n) = pdBuffer[sourceNum + (n * numSources)]
+    /*
+       buffer size is num channels * num ticks * num samples per tick (libpd_blocksize(), default 64)
+       samples are interleaved, so 
+       l0 r0 f0 l1 r1 f1 l2 r2 f2
+       sample(n) = pdBuffer[sourceNum + (n * numSources)]
+    */
 
-        // libpd_process_short(pdTicks, 0, pdBuffer);
-        // Call into Haskell to ensure processing occurs 
-        // on the dedicated thread we create for libpd
-        processShort(
-            threadData->pdChan, 
-            threadData->pdTicks, 0, 
-            threadData->pdBuffer);
+    // Call into Haskell to ensure processing occurs 
+    // on the dedicated thread we create for libpd
+    processShort(
+        threadData->pdChan, 
+        threadData->pdTicks,
+        threadData->pdInBuffer,
+        threadData->pdOutBuffer);
 
-        for (int i = 0; i < numSources; ++i) {
-          
-          ALuint sourceID = allSourceIDs[i];
-          tick_source_stream(sourceID, i, threadData);
-        
-        }
-      } else {
-        // printf("Done filling, Num sources ready is %i\n", numSourcesReady);
-        shouldContinueFilling = false;
-      }
+    // Copy Pd's output to each OpenAL source
+    for (int i = 0; i < numSources; ++i) {
+      ALuint sourceID = allSourceIDs[i];
+      tick_source_stream(sourceID, i, threadData);
     }
-    // Wait a portion of the buffer size so as to not peg CPU
-    nanosleep((struct timespec[]){{0, threadData->threadSleepNsec}}, NULL);
+
+    shouldFill = allSourcesReady(allSourceIDs, numSources);
   }
+  // Print how many times we filled up
+  if (numberOfFills > 1) {
+    printf("Refilled %i times\n", numberOfFills);
+  }
+
+  // Grab excess microphone data
+  // int samplesIn;
+  // alcGetIntegerv(threadData->inputDevice, ALC_CAPTURE_SAMPLES, 1, &samplesIn);
+  // if (samplesIn >= threadData->bufferSize) {
+  //   printf("Purging mic samples: %i\n", samplesIn);
+  //   alcCaptureSamples(threadData->inputDevice, threadData->pdInBuffer, threadData->bufferSize);
+  // }
+
+  // Wait a portion of the buffer size so as to not peg CPU
+  nanosleep((struct timespec[]){{0, threadData->threadSleepNsec}}, NULL);
 }
 
 // Checks if an OpenAL source has finished processing any of its streaming buffers
@@ -251,10 +309,9 @@ bool tick_source_stream(ALuint sourceID, int sourceNum, OpenALThreadData *thread
   // Copy interleaved output of pd into OpenAL buffer for this source
   // TODO: SIMD this
   for (int n = 0; n < bufferSize; ++n) {
-    threadData->tempBuffer[n] = threadData->pdBuffer[sourceNum + (n * numSources)];
+    threadData->tempBuffer[n] = threadData->pdOutBuffer[sourceNum + (n * numSources)];
   }
-  
-  // sine_into_buffer(tempBuffer, bufferSize, freq, tOffset);
+    
   ALuint bufferID;
   alSourceUnqueueBuffers(sourceID, 1, &bufferID);
   alBufferData(bufferID, FORMAT, threadData->tempBuffer, bufferSize * sizeof(short), SAMPLE_RATE);
@@ -295,6 +352,7 @@ void setOpenALListenerGainRaw(ALfloat value) {
   alListenerf(AL_GAIN, value);
 }
 
+
 void checkALError(void) {
   
   ALenum error = alGetError();
@@ -321,5 +379,28 @@ void checkALError(void) {
     case AL_OUT_OF_MEMORY:
       printf("OpenAL Error: Out of memory\n");
       break;                         
+  }
+}
+
+void checkALCError(ALCdevice *device) {
+  ALCenum error = alcGetError(device);
+  switch (error) {
+    case ALC_NO_ERROR:
+      break;
+
+    case ALC_INVALID_DEVICE:
+      printf("OpenALC Error: Invalid Device\n");
+
+    case ALC_INVALID_CONTEXT:
+      printf("OpenALC Error: Invalid Context\n");
+
+    case ALC_INVALID_ENUM:
+      printf("OpenALC Error: Invalid Enum\n");
+
+    case ALC_INVALID_VALUE:
+      printf("OpenALC Error: Invalid Value\n");
+
+    case ALC_OUT_OF_MEMORY:
+      printf("OpenALC Error: Out of memory\n");
   }
 }
