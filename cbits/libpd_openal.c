@@ -123,7 +123,7 @@ ALuint* startAudio(int numSources, int bufferSize, HsStablePtr pdChan) {
   }
 
   // Open the input device for capturing microphone/line-in
-  // ALCdevice *inputDevice = alcCaptureOpenDevice(NULL, FREQ, FORMAT, FREQ/2);
+  ALCdevice *inputDevice = alcCaptureOpenDevice(NULL, SAMPLE_RATE, FORMAT, SAMPLE_RATE/2);
 
 
   // Enable HRTF spatialization
