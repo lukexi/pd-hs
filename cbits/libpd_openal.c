@@ -122,6 +122,11 @@ ALuint* startAudio(int numSources, int bufferSize, HsStablePtr pdChan) {
     return allSourceIDs;
   }
 
+  // Open the input device for capturing microphone/line-in
+  // ALCdevice *inputDevice = alcCaptureOpenDevice(NULL, FREQ, FORMAT, FREQ/2);
+
+
+  // Enable HRTF spatialization
   #if defined(_WIN32)
   // TODO OpenAL-soft HRTF enable here
   #else
@@ -130,7 +135,7 @@ ALuint* startAudio(int numSources, int bufferSize, HsStablePtr pdChan) {
   alcMacOSXRenderingQuality(ALC_MAC_OSX_SPATIAL_RENDERING_QUALITY_HIGH);
   #endif
 
-  
+  // Create the number of requested OpenAL sourceIDs
   for (int i = 0; i < numSources; ++i) {
     allSourceIDs[i] = create_source(bufferSize);
     //printf("Created source with ID: %i\n", allSourceIDs[i]);

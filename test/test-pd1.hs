@@ -24,7 +24,7 @@ main = do
         send p3 "freq" $ Atom $ Float (freq * 7)
         threadDelay 130000
     _ <- forkIO $ forM_ [-5, -0.9..] $ \pos -> do
-        print $ "Listener now at " ++ show pos
+        putStrLn $ "Listener now at " ++ show pos
         alListenerPosition (V3 pos 0 0)
         threadDelay 100000
     threadDelay 5000000
