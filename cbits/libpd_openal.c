@@ -273,7 +273,7 @@ void openal_thread_loop(void *threadArg) {
   if (numberOfFills > 1) {
     printf("Refilled %i times\n", numberOfFills);
   }
-
+  
   // Grab excess microphone data
   // int samplesIn;
   // alcGetIntegerv(threadData->inputDevice, ALC_CAPTURE_SAMPLES, 1, &samplesIn);
@@ -281,7 +281,7 @@ void openal_thread_loop(void *threadArg) {
   //   printf("Purging mic samples: %i\n", samplesIn);
   //   alcCaptureSamples(threadData->inputDevice, threadData->pdInBuffer, threadData->bufferSize);
   // }
-
+  
   // Wait a portion of the buffer size so as to not peg CPU
   nanosleep((struct timespec[]){{0, threadData->threadSleepNsec}}, NULL);
 }

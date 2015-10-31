@@ -54,7 +54,7 @@ test-suite test-microphone
     default-language:    Haskell2010
     main-is: test-microphone.hs
     hs-source-dirs:      test
-    build-depends: base, pd, linear-extra
+    build-depends: base, pd, linear-extra, time
     ghc-options: -Wall -O2 -threaded
 
 library
