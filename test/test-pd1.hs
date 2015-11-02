@@ -5,9 +5,9 @@ import Linear.Extra
 
 main :: IO ()
 main = do
-    p1 <- makePatch "test"
-    p2 <- makePatch "test"
-    p3 <- makePatch "test"
+    p1 <- makePatch "test/test"
+    p2 <- makePatch "test/test"
+    p3 <- makePatch "test/test"
 
     _ <- subscribe (local p1 "output") $ \i -> putStrLn $ "Subscription A: " ++ show i
     _ <- subscribe (local p1 "output") $ \i -> putStrLn $ "Subscription B: " ++ show i

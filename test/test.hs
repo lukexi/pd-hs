@@ -8,9 +8,9 @@ main = do
     pd <- initLibPd
 
     putStrLn "Making patches..."
-    p1 <- makePatch pd "test"
-    p2 <- makePatch pd "test"
-    p3 <- makePatch pd "test"
+    p1 <- makePatch pd "test/test"
+    p2 <- makePatch pd "test/test"
+    p3 <- makePatch pd "test/test"
 
     _ <- subscribe pd (local p1 "output") $ \i -> putStrLn $ "Subscription A: " ++ show i
     _ <- subscribe pd (local p1 "output") $ \i -> putStrLn $ "Subscription B: " ++ show i

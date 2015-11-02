@@ -6,7 +6,7 @@ import Data.Time
 
 main :: IO ()
 main = do
-    p1 <- makePatch "test-microphone"
+    p1 <- makePatch "test/test-microphone"
 
     -- _ <- forkIO $ forM_ [400,410..1500] $ \freq -> do
     --     send p1 "freq" $ Atom $ Float (freq)

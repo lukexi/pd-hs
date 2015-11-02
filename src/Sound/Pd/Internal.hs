@@ -120,7 +120,11 @@ foreign import ccall "libpd_bind" libpd_bind :: CString -> IO Binding
 foreign import ccall "libpd_unbind" libpd_unbind :: Binding -> IO ()
 
 
+-- Arrays
 
+foreign import ccall "libpd_arraysize"   libpd_arraysize   :: CString -> IO CInt
+foreign import ccall "libpd_read_array"  libpd_read_array  :: Ptr CFloat -> CString -> CInt -> CInt -> IO CInt
+foreign import ccall "libpd_write_array" libpd_write_array :: CString -> CInt -> Ptr CFloat -> CInt -> IO CInt
 
 
 ----------------

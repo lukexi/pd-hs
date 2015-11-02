@@ -3,7 +3,7 @@
 module Sound.Pd.Core where
 import Sound.Pd.Internal
 import Foreign.C
-import Foreign.Marshal.Array
+import Foreign.Marshal hiding (void)
 import System.FilePath
 import System.Directory
 import System.Environment
@@ -118,8 +118,9 @@ initLibPd = liftIO $ do
     libpd_init 
     
     let numberOfOpenALSources = 16
+        bufferSize = 128
     sources <- peekArray (fromIntegral numberOfOpenALSources) 
-        =<< startAudio numberOfOpenALSources 128 
+        =<< startAudio numberOfOpenALSources bufferSize
         =<< newStablePtr runChan
     -- putStrLn $ "Initialized OpenAL with " ++ show numberOfOpenALSources ++ " sources: " ++ show sources
 
@@ -130,6 +131,9 @@ initLibPd = liftIO $ do
             }
 
     return pd
+
+onPdThread :: MonadIO m => PureData -> IO a -> m a
+onPdThread pd action = liftIO (pdRun (pdThreadChan pd) action)
 
 makeReceiveChan :: MonadIO m => PureData -> Receiver -> m (TChan Message)
 makeReceiveChan (PureData {pdChannels=channelsVar}) name = liftIO $ do
@@ -147,7 +151,6 @@ subscribe pd name handler = liftIO $ do
     forkIO . forever $ 
         handler =<< atomically (readTChan channel)
 
-
 --------
 -- Files
 --------
@@ -156,9 +159,11 @@ data Patch = Patch { phFile :: File, phDollarZero :: DollarZero } deriving Typea
 
 newtype DollarZero = DollarZero Int
 
+
+
 -- | Spawn a new instance of the given patch name (sans .pd extension)
 makePatch :: MonadIO m => PureData -> FilePath -> m Patch
-makePatch pd fileName = liftIO $ pdRun (pdThreadChan pd) $ do
+makePatch pd fileName = onPdThread pd $ do
     file <- openFile (fileName <.> "pd") "."
     dz   <- getDollarZero file
     return $ Patch file dz
@@ -173,7 +178,7 @@ makeWeakPatch pd fileName = liftIO $ do
     return patch
 
 closePatch :: MonadIO m => PureData -> Patch -> m ()
-closePatch pd (Patch file _) = liftIO $ pdRun (pdThreadChan pd) $ closeFile file
+closePatch pd (Patch file _) = onPdThread pd $ closeFile file
 
 
 withPatch :: PureData -> FilePath -> (Patch -> IO a) -> IO a
@@ -348,6 +353,41 @@ bind receiver = withCString receiver libpd_bind
 
 unbind :: Binding -> IO ()
 unbind = libpd_unbind
+
+
+---------
+-- Arrays
+---------
+
+arraySize :: Num a => PureData -> String -> IO a
+arraySize pd arrayName = do
+    resultVar <- newEmptyMVar
+    onPdThread pd $ do
+        size <- fromIntegral <$> withCString arrayName libpd_arraysize
+        putMVar resultVar size
+    takeMVar resultVar
+
+readArray :: (Integral a, Fractional b) => PureData -> String -> a -> a -> IO (Maybe [b])
+readArray pd arrayName offset count = do
+    resultVar <- newEmptyMVar
+    onPdThread pd $ do
+        values <- withCString arrayName $ \cArrayName -> 
+            allocaArray (fromIntegral count) $ \ptr -> do
+                success <- libpd_read_array ptr cArrayName (fromIntegral offset) (fromIntegral count)
+                if success == 0
+                    then Just . fmap realToFrac <$> peekArray (fromIntegral count) ptr
+                    else return Nothing
+        putMVar resultVar values
+    takeMVar resultVar
+
+writeArray :: (Real a, Integral b, MonadIO m) => PureData -> String -> [a] -> b -> m ()
+writeArray pd arrayName values offset = onPdThread pd $ do
+    withCString arrayName $ \cArrayName -> 
+        withArray (fmap realToFrac values) $ \ptr -> do
+            success <- libpd_write_array cArrayName (fromIntegral offset) ptr count
+            when (not (success == 0)) $ putStrLn ("Pd-hs: Couldn't write to array " ++ arrayName)
+    where count = fromIntegral (length values)
+
 
 ------------
 -- Polyphony

@@ -22,6 +22,9 @@ module Sound.Pd1 (
     Pd.alListenerPose,
     Pd.alListenerGain,
     Pd.copyOpenALHRTFs,
+    readArray,
+    writeArray,
+    arraySize,
     addToLibPdSearchPath,
     getPdSources
     ) where
@@ -96,3 +99,18 @@ subscribe :: MonadIO m => Pd.Receiver -> (Pd.Message -> IO a) -> m ThreadId
 subscribe name handler = do
     pd <- getPd
     Pd.subscribe pd name handler
+
+arraySize :: Num a => String -> IO a
+arraySize arrayName = do
+    pd <- getPd
+    Pd.arraySize pd arrayName
+
+readArray :: (Integral a, Fractional b) => String -> a -> a -> IO (Maybe [b])
+readArray arrayName offset count = do
+    pd <- getPd
+    Pd.readArray pd arrayName offset count
+
+writeArray :: (Real a, Integral b, MonadIO m) => String -> [a] -> b -> m ()
+writeArray arrayName values offset = do
+    pd <- getPd
+    Pd.writeArray pd arrayName values offset

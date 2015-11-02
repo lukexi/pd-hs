@@ -208,7 +208,7 @@ bool allSourcesReady(const ALuint* allSourceIDs, const int numSources) {
       numSourcesReady++;
     }
   }
-  printf("Num sources ready: %i\n", numSourcesReady);
+  // printf("Num sources ready: %i\n", numSourcesReady);
   return numSourcesReady >= numSources;
 }
 
@@ -232,7 +232,7 @@ void openal_thread_loop(void *threadArg) {
   bool shouldFill = allSourcesReady(allSourceIDs, numSources);
   if (!shouldFill)
   {
-    printf("Thread woken but no sources ready\n");
+    // printf("Thread woken but no sources ready\n");
   }
   int numberOfFills = 0;
   while (shouldFill) {
@@ -271,7 +271,7 @@ void openal_thread_loop(void *threadArg) {
   }
   // Print how many times we filled up
   if (numberOfFills > 1) {
-    printf("Refilled %i times\n", numberOfFills);
+    // printf("Refilled %i times\n", numberOfFills);
   }
   
   // Grab excess microphone data

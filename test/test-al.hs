@@ -5,7 +5,7 @@ import Linear.Extra
 
 main :: IO ()
 main = do
-    p1 <- makePatch "world"
+    p1 <- makePatch "test/world"
 
     sources <- getPdSources
     forM_ sources $ \sourceID -> alSourcePosition sourceID ((V3 0 0 0) :: V3 Double)
