@@ -39,43 +39,37 @@ fftToVerts values = newVerts
         let x = (fromIntegral (i::Int) / 256) * 2 - 1
         in V3 x y 0
 
-
 main :: IO ()
 main = do
-  VRPal{..} <- initVRPal "Pd Mic FFT" NoGCPerFrame []
+  vrPal@VRPal{..} <- initVRPal "Pd Mic FFT" NoGCPerFrame []
   addToLibPdSearchPath "test"
   patch <- makePatch "test/test-fft"
   
   let fftArrayName = local patch "mic-fft"
 
-  shader    <- createShaderProgram "test/geo.vert" "test/geo.frag"
-  Uniforms{..} <- acquireUniforms shader
+  shader       <- createShaderProgram "test/geo.vert" "test/geo.frag"
   useProgram shader
+  Uniforms{..} <- acquireUniforms shader
   (lineVAO, lineBuffer, lineVertCount) <- makeLine shader
 
   glClearColor 0.01 0.01 0.05 1
+  let view = viewMatrix (V3 0 0 2) (axisAngle (V3 0 1 0) 0)
   whileWindow gpWindow $ do
-
-    let view = viewMatrix (V3 0 0 2) (axisAngle (V3 0 1 0) 0)
-    projection <- getWindowProjection gpWindow 45 0.1 1000
-    (x,y,w,h)  <- getWindowViewport gpWindow
-    glViewport x y w h
-
-    glClear (GL_COLOR_BUFFER_BIT .|. GL_DEPTH_BUFFER_BIT)
-
     processEvents gpEvents (closeOnEscape gpWindow)
-    
+
     -- Get the latest FFT from Pd
     mValues <- readArray fftArrayName (0::Int) 256
+
     -- Place its values into our line's GL buffer
     forM_ mValues $ \values -> do
       let newVerts = fftToVerts values
       bufferSubData lineBuffer (concatMap toList newVerts)
-    
-    -- Draw the line
-    let model = mkTransformation (axisAngle (V3 1 1 0) 0) (V3 0 0 0)
-    uniformM44 uMVP (projection !*! view !*! model)
-    withVAO lineVAO $ 
-      glDrawArrays GL_LINE_STRIP 0 lineVertCount
 
-    swapBuffers gpWindow
+    -- Draw the line
+    renderWith vrPal view
+      (glClear (GL_COLOR_BUFFER_BIT .|. GL_DEPTH_BUFFER_BIT)) 
+      $ \projection eyeView -> do
+          let model = mkTransformation (axisAngle (V3 1 1 0) 0) (V3 0 0 0)
+          uniformM44 uMVP (projection !*! eyeView !*! model)
+          withVAO lineVAO $ 
+            glDrawArrays GL_LINE_STRIP 0 lineVertCount
