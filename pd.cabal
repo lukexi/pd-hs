@@ -46,7 +46,7 @@ test-suite test-interactive
     hs-source-dirs:      test
     build-depends: 
       base, pd, linear-extra, 
-      game-pal, gl, glfw-pal, random
+      vr-pal, gl, glfw-pal, random
     ghc-options: -Wall -O2 -threaded
 
 test-suite test-fft
@@ -56,7 +56,7 @@ test-suite test-fft
     hs-source-dirs:      test
     build-depends: 
       base, pd, linear-extra, 
-      game-pal, gl, glfw-pal, random
+      vr-pal, gl, glfw-pal, random
     ghc-options: -Wall -O2 -threaded
 
 test-suite test-microphone

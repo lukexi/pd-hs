@@ -1,6 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
-import Game.Pal
+import Graphics.VR.Pal
 import Graphics.GL
+import Graphics.GL.Pal
 import Graphics.UI.GLFW.Pal
 import Sound.Pd1
 -- import System.Random
@@ -8,7 +9,7 @@ import Control.Monad
 
 main :: IO ()
 main = do
-  GamePal{..} <- initGamePal "Pd Mic FFT" NoGCPerFrame []
+  VRPal{..} <- initVRPal "Pd Mic FFT" NoGCPerFrame []
   addToLibPdSearchPath "test"
   patch <- makePatch "test/test-fft"
   

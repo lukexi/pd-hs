@@ -1,5 +1,5 @@
 {-# LANGUAGE RecordWildCards #-}
-import Game.Pal
+import Graphics.VR.Pal
 import Graphics.GL
 import Graphics.UI.GLFW.Pal
 import Sound.Pd1
@@ -28,7 +28,7 @@ keyToNote =
 
 main :: IO ()
 main = do
-  GamePal{..} <- initGamePal "Pd Interactive" NoGCPerFrame []
+  VRPal{..} <- initVRPal "Pd Interactive" NoGCPerFrame []
 
   patch <- makePatch "test/test-interactive"
   

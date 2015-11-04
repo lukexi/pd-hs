@@ -2,7 +2,7 @@ resolver: nightly-2015-11-03
 flags: {}
 packages:
 - '.'
-- '../game-pal'
+- '../vr-pal'
 - '../glfw-pal'
 - '../gl-pal'
 - '../oculus-mini'
