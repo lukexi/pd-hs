@@ -6,7 +6,6 @@ import Graphics.GL.Pal
 import Graphics.UI.GLFW.Pal
 import Sound.Pd1
 import Data.Foldable
-import Control.Monad
 
 data Uniforms = Uniforms 
   { uMVP :: UniformLocation (M44 GLfloat) } 
@@ -31,6 +30,16 @@ makeLine shader = do
 
   return (vao, positionsBuffer, fromIntegral vertCount)
 
+fftToVerts :: Fractional b => [b] -> [V3 b]
+fftToVerts values = newVerts
+  where
+      ys = (/255) <$> values
+      newVerts = flip map (zip [0..] ys) $ \(i, y) ->
+        -- Spread x from -1 to 1
+        let x = (fromIntegral (i::Int) / 256) * 2 - 1
+        in V3 x y 0
+
+
 main :: IO ()
 main = do
   VRPal{..} <- initVRPal "Pd Mic FFT" NoGCPerFrame []
@@ -47,26 +56,23 @@ main = do
   glClearColor 0.01 0.01 0.05 1
   whileWindow gpWindow $ do
 
-    let view = viewMatrix (V3 0 0 5) (axisAngle (V3 0 1 0) 0)
+    let view = viewMatrix (V3 0 0 2) (axisAngle (V3 0 1 0) 0)
     projection <- getWindowProjection gpWindow 45 0.1 1000
-    (x,y,w,h) <- getWindowViewport gpWindow
+    (x,y,w,h)  <- getWindowViewport gpWindow
     glViewport x y w h
 
     glClear (GL_COLOR_BUFFER_BIT .|. GL_DEPTH_BUFFER_BIT)
 
     processEvents gpEvents (closeOnEscape gpWindow)
     
+    -- Get the latest FFT from Pd
     mValues <- readArray fftArrayName (0::Int) 256
-    let _ = mValues :: Maybe [GLfloat]
+    -- Place its values into our line's GL buffer
     forM_ mValues $ \values -> do
-      let ys = (*10) . (/255) <$> values
-          newVerts = flip map (zip [0..] ys) $ \(i, y) ->
-            let x = fromIntegral i / fromIntegral lineVertCount
-                x' = x * 2 - 1
-            in V3 x' y 0
+      let newVerts = fftToVerts values
       bufferSubData lineBuffer (concatMap toList newVerts)
     
-
+    -- Draw the line
     let model = mkTransformation (axisAngle (V3 1 1 0) 0) (V3 0 0 0)
     uniformM44 uMVP (projection !*! view !*! model)
     withVAO lineVAO $ 
