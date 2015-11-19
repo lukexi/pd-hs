@@ -20,17 +20,17 @@ makeLine shader = do
       vertCount = length verts
       normals = replicate vertCount (V3 0 0 1)
   
-  positionsBuffer <- bufferData GL_DYNAMIC_DRAW (concatMap toList verts)
-  normalsBuffer   <- bufferData GL_STATIC_DRAW (concatMap toList normals)
+  positionsBuffer <- bufferData GL_DYNAMIC_DRAW (concatMap toList verts :: [GLfloat])
+  normalsBuffer   <- bufferData GL_STATIC_DRAW (concatMap toList normals :: [GLfloat])
 
   vao <- newVAO
   withVAO vao $ do
-    withArrayBuffer positionsBuffer $ assignAttribute shader "aPosition" 3
-    withArrayBuffer normalsBuffer   $ assignAttribute shader "aNormal" 3
+    withArrayBuffer positionsBuffer $ assignFloatAttribute shader "aPosition" GL_FLOAT  3
+    withArrayBuffer normalsBuffer   $ assignFloatAttribute shader "aNormal" GL_FLOAT 3
 
   return (vao, positionsBuffer, fromIntegral vertCount)
 
-fftToVerts :: Fractional b => [b] -> [V3 b]
+fftToVerts :: [GLfloat] -> [V3 GLfloat]
 fftToVerts values = newVerts
   where
       ys = (/255) <$> values
@@ -64,7 +64,7 @@ main = do
     forM_ mValues $ \values -> do
       let newVerts = fftToVerts values
       bufferSubData lineBuffer (concatMap toList newVerts)
-
+    
     -- Draw the line
     renderWith vrPal view
       (glClear (GL_COLOR_BUFFER_BIT .|. GL_DEPTH_BUFFER_BIT)) 

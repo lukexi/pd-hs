@@ -37,7 +37,7 @@ main = do
     processEvents gpEvents $ \e -> do
       closeOnEscape gpWindow e
       forM_ keyToNote $ \(key, note) ->
-        onKeyDown key e $ do
+        onKeyDown e key $ do
           [r,g,b] <- replicateM 3 randomIO
           glClearColor r g b 1
           send patch "note" (Atom note)
