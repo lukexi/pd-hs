@@ -7,7 +7,7 @@ import Foreign.Storable
 import Control.Concurrent
 import Control.Monad
 
-newtype OpenALSource = OpenALSource CUInt deriving (Show, Storable)
+import Sound.Pd.OpenAL
 
 data FileOpaque
 type File = Ptr FileOpaque
@@ -127,14 +127,4 @@ foreign import ccall "libpd_read_array"  libpd_read_array  :: Ptr CFloat -> CStr
 foreign import ccall "libpd_write_array" libpd_write_array :: CString -> CInt -> Ptr CFloat -> CInt -> IO CInt
 
 
-----------------
--- OpenAL
-----------------
-foreign import ccall "setOpenALSourcePositionRaw" setOpenALSourcePositionRaw :: OpenALSource -> Ptr CFloat -> IO ()
---foreign import ccall "setOpenALSourceOrientationRaw" setOpenALSourceOrientationRaw :: OpenALSource -> Ptr CFloat -> IO ()
-foreign import ccall "setOpenALListenerOrientationRaw" setOpenALListenerOrientationRaw :: Ptr CFloat -> IO ()
-foreign import ccall "setOpenALListenerPositionRaw" setOpenALListenerPositionRaw :: Ptr CFloat -> IO ()
 
-
-
-foreign import ccall "setOpenALListenerGainRaw" setOpenALListenerGainRaw :: CFloat -> IO ()

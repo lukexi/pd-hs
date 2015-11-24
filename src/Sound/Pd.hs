@@ -13,7 +13,6 @@ module Sound.Pd (
     PureData(pdSources),
     Patch,
     Receiver,
-    OpenALSource,
     makeReceiveChan,
     subscribe,
     local,
@@ -22,12 +21,8 @@ module Sound.Pd (
     readArray,
     writeArray,
     arraySize,
-    alSourcePosition,
-    alListenerPosition,
-    alListenerOrientation,
-    alListenerPose,
-    alListenerGain,
-    copyOpenALHRTFs
+    module Sound.Pd.OpenAL
     ) where
 import Sound.Pd.Core
 import Sound.Pd.Internal
+import Sound.Pd.OpenAL

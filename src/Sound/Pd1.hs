@@ -15,20 +15,15 @@ module Sound.Pd1 (
     Pd.Message(..),
     Pd.PolyPatch(..),
     Pd.getPolyVoice,
-    Pd.OpenALSource,
-    Pd.alSourcePosition,
-    Pd.alListenerPosition,
-    Pd.alListenerOrientation,
-    Pd.alListenerPose,
-    Pd.alListenerGain,
-    Pd.copyOpenALHRTFs,
     readArray,
     writeArray,
     arraySize,
     addToLibPdSearchPath,
-    getPdSources
+    getPdSources,
+    module Sound.Pd.OpenAL
     ) where
 import qualified Sound.Pd as Pd
+import Sound.Pd.OpenAL
 
 import Control.Concurrent
 import Control.Concurrent.STM

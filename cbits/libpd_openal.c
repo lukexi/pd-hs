@@ -354,6 +354,17 @@ void setOpenALListenerGainRaw(ALfloat value) {
   alListenerf(AL_GAIN, value);
 }
 
+void setOpenALDistanceModelInverse() {
+  alDistanceModel(AL_INVERSE_DISTANCE);
+}
+
+void setOpenALDistanceModelLinear() {
+  alDistanceModel(AL_LINEAR_DISTANCE);
+}
+
+void setOpenALDistanceModelExponent() {
+  alDistanceModel(AL_EXPONENT_DISTANCE);
+}
 
 void checkALError(void) {
   

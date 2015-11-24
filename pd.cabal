@@ -72,6 +72,7 @@ library
     Sound.Pd
     Sound.Pd1
     Sound.Pd.Core
+    Sound.Pd.OpenAL
     Sound.Pd.Internal
   -- other-modules:
   -- other-extensions:
