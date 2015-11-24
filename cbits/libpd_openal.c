@@ -113,8 +113,10 @@ ALuint* startAudio(int numSources, int bufferSize, HsStablePtr pdChan) {
   if (!inputDevice) {
     fprintf(stderr, "Couldn't get an input device :-(\n");
   }
+  printf("alcCapturOpenDevice:\n");
   checkALCError(inputDevice);
   alcCaptureStart(inputDevice);
+  printf("alcCaptureStart:\n");
   checkALCError(inputDevice);
 
   // Enable HRTF spatialization

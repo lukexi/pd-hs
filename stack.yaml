@@ -5,8 +5,6 @@ packages:
 - '../vr-pal'
 - '../glfw-pal'
 - '../gl-pal'
-- '../oculus-mini'
-- '../hydra-hs'
 - '../linear-extra'
 - '../lens-extra'
 - '../halive'

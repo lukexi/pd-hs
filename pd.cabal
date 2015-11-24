@@ -14,58 +14,58 @@ category:            Sound
 build-type:          Simple
 -- extra-source-files:
 cabal-version:       >=1.10
+data-files: dlls/libpd.dll
+            dlls/OpenAL32.dll
 
-test-suite test
-    type: exitcode-stdio-1.0
+test-suite basic
+    type:                exitcode-stdio-1.0
     default-language:    Haskell2010
-    main-is: test.hs
+    main-is:             test-basic.hs
     hs-source-dirs:      test
-    build-depends: base, pd
-    ghc-options: -Wall -O2 -threaded
+    build-depends:       base, pd
+    ghc-options:         -Wall -O2 -threaded
 
-test-suite test-pd1
-    type: exitcode-stdio-1.0
+test-suite pd1
+    type:                exitcode-stdio-1.0
     default-language:    Haskell2010
-    main-is: test-pd1.hs
+    main-is:             test-pd1.hs
     hs-source-dirs:      test
-    build-depends: base, pd, linear-extra
-    ghc-options: -Wall -O2 -threaded
+    build-depends:       base, pd, linear-extra
+    ghc-options:         -Wall -O2 -threaded
 
-test-suite test-al
-    type: exitcode-stdio-1.0
+test-suite al
+    type:                exitcode-stdio-1.0
     default-language:    Haskell2010
-    main-is: test-al.hs
+    main-is:             test-al.hs
     hs-source-dirs:      test
-    build-depends: base, pd, linear-extra
-    ghc-options: -Wall -O2 -threaded
+    build-depends:       base, pd, linear-extra
+    ghc-options:         -Wall -O2 -threaded
 
-test-suite test-interactive
-    type: exitcode-stdio-1.0
+test-suite interactive
+    type:                exitcode-stdio-1.0
     default-language:    Haskell2010
-    main-is: test-interactive.hs
+    main-is:             test-interactive.hs
     hs-source-dirs:      test
-    build-depends: 
-      base, pd, linear-extra, 
-      vr-pal, gl, glfw-pal, random
-    ghc-options: -Wall -O2 -threaded
+    build-depends:       base, pd, linear-extra, 
+                         vr-pal, gl, glfw-pal, random
+    ghc-options:         -Wall -O2 -threaded
 
-test-suite test-fft
-    type: exitcode-stdio-1.0
+test-suite fft
+    type:                exitcode-stdio-1.0
     default-language:    Haskell2010
-    main-is: test-fft.hs
+    main-is:             test-fft.hs
     hs-source-dirs:      test
-    build-depends: 
-      base, pd, linear-extra, 
-      vr-pal, gl, glfw-pal, random, gl-pal
-    ghc-options: -Wall -O2 -threaded
+    build-depends:       base, pd, linear-extra, 
+                         vr-pal, gl, glfw-pal, random, gl-pal
+    ghc-options:         -Wall -O2 -threaded
 
-test-suite test-microphone
-    type: exitcode-stdio-1.0
+test-suite microphone
+    type:                exitcode-stdio-1.0
     default-language:    Haskell2010
-    main-is: test-microphone.hs
+    main-is:             test-microphone.hs
     hs-source-dirs:      test
-    build-depends: base, pd, linear-extra, time
-    ghc-options: -Wall -O2 -threaded
+    build-depends:       base, pd, linear-extra, time
+    ghc-options:         -Wall -O2 -threaded
 
 library
   exposed-modules:
@@ -89,6 +89,7 @@ library
     extra-lib-dirs: c:\msys64\usr\local\bin c:\msys64\mingw64\bin
     extra-libraries: libwinpthread-1 libpd OpenAL32
     c-sources: cbits/openal_soft_reverb.c
+
   
   include-dirs:
     libpd/libpd_wrapper
