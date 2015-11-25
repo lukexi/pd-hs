@@ -4,7 +4,7 @@ import Graphics.VR.Pal
 import Graphics.GL
 import Graphics.GL.Pal
 import Graphics.UI.GLFW.Pal
-import Sound.Pd1
+import Sound.Pd
 import Data.Foldable
 
 data Uniforms = Uniforms 
@@ -40,14 +40,15 @@ fftToVerts values = newVerts
         in V3 x y 0
 
 main :: IO ()
-main = do
+main = withPd $ \pd -> do
   vrPal@VRPal{..} <- initVRPal "Pd Mic FFT" NoGCPerFrame []
-  addToLibPdSearchPath "test"
-  patch <- makePatch "test/test-fft"
+  addToLibPdSearchPath pd "test"
+
+  patch  <- makePatch pd "test/test-fft"
   
   let fftArrayName = local patch "mic-fft"
 
-  shader       <- createShaderProgram "test/geo.vert" "test/geo.frag"
+  shader <- createShaderProgram "test/geo.vert" "test/geo.frag"
   useProgram shader
   Uniforms{..} <- acquireUniforms shader
   (lineVAO, lineBuffer, lineVertCount) <- makeLine shader
@@ -58,7 +59,7 @@ main = do
     processEvents gpEvents (closeOnEscape gpWindow)
 
     -- Get the latest FFT from Pd
-    mValues <- readArray fftArrayName (0::Int) 256
+    mValues <- readArray pd fftArrayName (0::Int) 256
 
     -- Place its values into our line's GL buffer
     forM_ mValues $ \values -> do

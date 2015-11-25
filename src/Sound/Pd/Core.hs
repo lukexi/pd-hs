@@ -84,6 +84,8 @@ acquireChannel name channelsVar = do
             writeTVar channelsVar (Map.insert name chan channels)
             return (chan, True)
 
+withPd = bracket initLibPd closeLibPd
+
 -- | Create a libpd instance. Must be called before anything else.
 -- Libpd currently only supports one instance (but work is underway to fix this)
 initLibPd :: MonadIO m => m PureData
@@ -128,6 +130,8 @@ initLibPd = liftIO $ do
             }
 
     return pd
+
+closeLibPd _pureData = stopAudio
 
 onPdThread :: MonadIO m => PureData -> IO a -> m a
 onPdThread pd action = liftIO (pdRun (pdThreadChan pd) action)
@@ -183,8 +187,9 @@ withPatch pd name = bracket (makePatch pd name) (closePatch pd)
 
 
 -- | Add a directory to the searchpath to find Pd patches in
-addToLibPdSearchPath :: MonadIO m => String -> m ()
-addToLibPdSearchPath dir = liftIO $ 
+-- (we just take PureData here to ensure it's initialized)
+addToLibPdSearchPath :: MonadIO m => PureData -> String -> m ()
+addToLibPdSearchPath _ dir = liftIO $ 
     withCString dir $ \d -> 
     libpd_add_to_search_path d
 

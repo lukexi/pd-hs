@@ -29,6 +29,9 @@ pdRun chan action = do
 foreign import ccall "startAudio" 
   startAudio :: CInt -> CInt -> StablePtr PdChan -> IO (Ptr OpenALSource)
 
+foreign import ccall "stopAudio"
+  stopAudio :: IO ()
+
 foreign import ccall "libpd_process_float"  
   libpd_process_float  :: CInt -> Ptr CFloat  -> Ptr CFloat  -> IO CInt
 foreign import ccall "libpd_process_double" 

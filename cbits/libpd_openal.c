@@ -56,9 +56,41 @@ bool check_source_ready(ALuint sourceID);
 ALuint create_source(int bufferSize);
 bool tick_source_stream(ALuint sourceID, int sourceNum, OpenALThreadData *threadData);
 void *openal_thread_start(void *threadArg);
-void openal_thread_loop(void *threadArg);
+void openal_thread_loop(OpenALThreadData *threadData);
 void checkALError(void);
 void checkALCError(ALCdevice *device);
+
+
+pthread_mutex_t audioThreadIsRunningMutex;
+pthread_t audioThread;
+ALCdevice *audioDevice;
+ALCdevice *inputDevice;
+ALCcontext *audioContext;
+
+/* Returns 1 (true) if the mutex is unlocked, which is the
+ * thread's signal to terminate. 
+ */
+bool audioThreadIsRunning()
+{
+  if (pthread_mutex_trylock(&audioThreadIsRunningMutex) == 0) {
+    pthread_mutex_unlock(&audioThreadIsRunningMutex);
+    return 0;
+  }
+  return 1;
+}
+
+void stopAudio() {
+  pthread_mutex_unlock(&audioThreadIsRunningMutex);
+  pthread_join(audioThread, NULL);
+  alcCaptureStop(inputDevice);
+
+  alcMakeContextCurrent(NULL);
+  alcDestroyContext(audioContext);
+
+  alcCaptureCloseDevice(inputDevice);
+  alcCloseDevice(audioDevice);
+
+}
 
 ALuint* startAudio(int numSources, int bufferSize, HsStablePtr pdChan) {
   const int pdOutBufferSize = bufferSize * numSources;
@@ -72,23 +104,21 @@ ALuint* startAudio(int numSources, int bufferSize, HsStablePtr pdChan) {
   libpd_finish_message("pd", "dsp");
 
   // Open the default device and create an OpenAL context
-  ALCdevice *device;
-  ALCcontext *context;
   ALuint *allSourceIDs = (ALuint*)malloc(numSources * sizeof(ALuint));
 
-  device = alcOpenDevice(NULL);
-  if(!device) {
+  audioDevice = alcOpenDevice(NULL);
+  if(!audioDevice) {
     checkALError();
     fprintf(stderr, "Couldn't open OpenAL device :-(\n");
     return allSourceIDs;
   }
-  context = alcCreateContext(device, NULL);
+  audioContext = alcCreateContext(audioDevice, NULL);
   checkALError();
-  if(!context) {
+  if(!audioContext) {
     fprintf(stderr, "Couldn't create OpenAL context :-(\n");
     return allSourceIDs;
   }
-  alcMakeContextCurrent(context);
+  alcMakeContextCurrent(audioContext);
   checkALError();
 
   // Open the input device for capturing microphone/line-in
@@ -109,14 +139,12 @@ ALuint* startAudio(int numSources, int bufferSize, HsStablePtr pdChan) {
   const ALchar *defaultCaptureDevice = alcGetString(NULL, ALC_CAPTURE_DEFAULT_DEVICE_SPECIFIER);
   printf("\nDefault Capture Device is '%s'\n\n", defaultCaptureDevice);
 
-  ALCdevice *inputDevice = alcCaptureOpenDevice(NULL, SAMPLE_RATE, FORMAT, SAMPLE_RATE);
+  inputDevice = alcCaptureOpenDevice(NULL, SAMPLE_RATE, FORMAT, SAMPLE_RATE);
   if (!inputDevice) {
     fprintf(stderr, "Couldn't get an input device :-(\n");
   }
-  printf("alcCapturOpenDevice:\n");
   checkALCError(inputDevice);
   alcCaptureStart(inputDevice);
-  printf("alcCaptureStart:\n");
   checkALCError(inputDevice);
 
   // Enable HRTF spatialization
@@ -160,8 +188,11 @@ ALuint* startAudio(int numSources, int bufferSize, HsStablePtr pdChan) {
     alSourcefv(sourceID, AL_POSITION, sourcePos);
   }
 
-  pthread_t thread;
-  pthread_create(&thread, NULL, openal_thread_start, (void *)threadData);
+  // Create a locked mutex to serve as an indicator that we should
+  // keep running the audio thread. When it's unlocked, we'll stop.
+  pthread_mutex_init(&audioThreadIsRunningMutex, NULL);
+  pthread_mutex_lock(&audioThreadIsRunningMutex);
+  pthread_create(&audioThread, NULL, openal_thread_start, (void *)threadData);
 
   return allSourceIDs;
 }
@@ -215,13 +246,23 @@ bool allSourcesReady(const ALuint* allSourceIDs, const int numSources) {
 }
 
 void *openal_thread_start(void *threadArg) {
-  while (1) {
-    openal_thread_loop(threadArg);
+  OpenALThreadData *threadData = (OpenALThreadData *)threadArg;
+  while (audioThreadIsRunning()) {
+    openal_thread_loop(threadData);
   }
+  
+  // On finish, free the sources
+  const ALuint* allSourceIDs = threadData->allSourceIDs;
+  const int numSources = threadData->numSources;
+  for (int i = 0; i < numSources; ++i) {
+    ALuint sourceID = allSourceIDs[i];
+    alSourceStop(sourceID);    
+  }
+  alDeleteSources(numSources, allSourceIDs);
+  return NULL;
 }
 
-void openal_thread_loop(void *threadArg) {
-  OpenALThreadData *threadData = (OpenALThreadData *)threadArg;
+void openal_thread_loop(OpenALThreadData *threadData) {
   const ALuint* allSourceIDs = threadData->allSourceIDs;
   const int numSources = threadData->numSources;
 

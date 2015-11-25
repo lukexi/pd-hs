@@ -45,9 +45,8 @@ getPdSources = liftIO $ do
 
 addToLibPdSearchPath :: MonadIO m => FilePath -> m ()
 addToLibPdSearchPath path = do
-    -- We just need to get Pd here to make sure LibPd is initialized before we add to its search path
-    _pd <- getPd
-    Pd.addToLibPdSearchPath path
+    pd <- getPd
+    Pd.addToLibPdSearchPath pd path
 
 makePatch :: MonadIO m => FilePath -> m Pd.Patch
 makePatch fileName = do
