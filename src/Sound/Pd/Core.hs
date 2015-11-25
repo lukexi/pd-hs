@@ -5,9 +5,6 @@ import Sound.Pd.Internal
 import Foreign.C
 import Foreign.Marshal hiding (void)
 import System.FilePath
-import System.Directory
-import System.Environment
-import Control.Applicative
 import Control.Monad
 import Control.Monad.Trans
 import Control.Concurrent
@@ -18,7 +15,6 @@ import Foreign.StablePtr
 import Data.String
 import Data.Data
 import Control.Exception
-import Linear.Extra
 import System.Mem.Weak
 import Sound.Pd.OpenAL
 

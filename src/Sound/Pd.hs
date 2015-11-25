@@ -24,5 +24,4 @@ module Sound.Pd (
     module Sound.Pd.OpenAL
     ) where
 import Sound.Pd.Core
-import Sound.Pd.Internal
 import Sound.Pd.OpenAL

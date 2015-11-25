@@ -3,7 +3,6 @@ module Sound.Pd.Internal where
 import Foreign.C
 import Foreign.Ptr
 import Foreign.StablePtr
-import Foreign.Storable
 import Control.Concurrent
 import Control.Monad
 
