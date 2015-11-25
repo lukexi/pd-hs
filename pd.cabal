@@ -70,7 +70,6 @@ test-suite microphone
 library
   exposed-modules:
     Sound.Pd
-    Sound.Pd1
     Sound.Pd.Core
     Sound.Pd.OpenAL
     Sound.Pd.Internal

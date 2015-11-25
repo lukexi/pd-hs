@@ -1,6 +1,5 @@
 module Sound.Pd (
     withPd,
-    initLibPd, -- don't use this more than once
     makePatch,
     makeWeakPatch,
     withPatch,
