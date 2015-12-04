@@ -1,4 +1,3 @@
-resolver: nightly-2015-11-03
 flags: {}
 packages:
 - '.'
@@ -9,3 +8,4 @@ packages:
 - '../lens-extra'
 - '../halive'
 - '../openvr-hs'
+resolver: nightly-2015-12-03
