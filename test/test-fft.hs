@@ -54,8 +54,8 @@ main = withPd $ \pd -> do
   (lineVAO, lineBuffer, lineVertCount) <- makeLine shader
 
   glClearColor 0.01 0.01 0.05 1
-  let view = viewMatrix (V3 0 0 2) (axisAngle (V3 0 1 0) 0)
-  whileWindow gpWindow $ do
+  let player = Pose (V3 0 0 2) (axisAngle (V3 0 1 0) 0)
+  whileVR vrPal $ \headM44 hands -> do
     processEvents gpEvents (closeOnEscape gpWindow)
 
     -- Get the latest FFT from Pd
@@ -67,7 +67,7 @@ main = withPd $ \pd -> do
       bufferSubData lineBuffer (concatMap toList newVerts)
     
     -- Draw the line
-    renderWith vrPal view
+    renderWith vrPal player headM44
       (glClear (GL_COLOR_BUFFER_BIT .|. GL_DEPTH_BUFFER_BIT)) 
       $ \projection eyeView -> do
           let model = mkTransformation (axisAngle (V3 1 1 0) 0) (V3 0 0 0)

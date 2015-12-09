@@ -33,7 +33,7 @@ main = do
   patch <- makePatch "test/test-interactive"
   
   glClearColor 0.1 0.1 0.1 1
-  whileWindow gpWindow $ do
+  whileVR vrPal $ \headM44 hands -> do
     processEvents gpEvents $ \e -> do
       closeOnEscape gpWindow e
       forM_ keyToNote $ \(key, note) ->
