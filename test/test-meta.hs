@@ -1,22 +1,35 @@
+{-# LANGUAGE OverloadedStrings #-}
 import Control.Concurrent
 import Sound.Pd
 
+-- MAIN REFERENCE FOR METAPATCHING:
+-- https://puredata.info/docs/tutorials/TipsAndTricks#undocumented-pd-internal-messages
+
 main :: IO ()
 main = withPd $ \pd -> do
-    patch <- makePatch pd "test/test-meta-empty"
-    let contentsReceiver = "pd-" ++ local patch "contents"
+
+    _patch <- makePatch pd "test/test-meta-empty"
+    -- This is how we talk to a subpatch, in this case [pd $0contents]
+    -- (assuming [pd $0contents] already exists in the patch!)
+    -- let receiver = "pd-" ++ local patch "contents"
+
+
+    -- This is how we talk to the patch file itself. If it's open multiple times, the edits
+    -- will take place in all open copies!
+    -- NOTE: That's fixable using namecanvas if desired, see link above.
+    let receiver = "pd-test/test-meta-empty.pd"
     
     putStrLn "Adding osc~"
 
-    sendGlobal pd contentsReceiver (Message "obj" [Float 50, Float 50, String "osc~", Float 330])
+    sendGlobal pd receiver (Message "obj" [50, 50, "osc~", 330])
     putStrLn "Adding dac~"
-    sendGlobal pd contentsReceiver (Message "obj" [Float 50, Float 50, String "dac~", Float 1, Float 2])
+    sendGlobal pd receiver (Message "obj" [50, 50, "dac~", 1, 2])
     putStrLn "Connecting"
-    sendGlobal pd contentsReceiver (Message "connect" [Float 0, Float 0, Float 1, Float 0])
+    sendGlobal pd receiver (Message "connect" [0, 0, 1, 0])
 
     threadDelay 1000000
     putStrLn "Adding second osc~"
-    sendGlobal pd contentsReceiver (Message "obj" [Float 50, Float 50, String "osc~", Float 550])
-    sendGlobal pd contentsReceiver (Message "connect" [Float 2, Float 0, Float 1, Float 1])
+    sendGlobal pd receiver (Message "obj" [50, 50, "osc~", 550])
+    sendGlobal pd receiver (Message "connect" [2, 0, 1, 1])
 
     threadDelay 5000000
