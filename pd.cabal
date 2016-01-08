@@ -67,6 +67,14 @@ test-suite microphone
     build-depends:       base, pd, linear-extra, time
     ghc-options:         -Wall -O2 -threaded
 
+test-suite meta
+    type:                exitcode-stdio-1.0
+    default-language:    Haskell2010
+    main-is:             test-meta.hs
+    hs-source-dirs:      test
+    build-depends:       base, pd
+    ghc-options:         -Wall -O2 -threaded
+
 library
   exposed-modules:
     Sound.Pd
