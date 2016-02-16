@@ -41,7 +41,7 @@ fftToVerts values = newVerts
 
 main :: IO ()
 main = withPd $ \pd -> do
-  vrPal@VRPal{..} <- initVRPal "Pd Mic FFT" NoGCPerFrame []
+  vrPal@VRPal{..} <- initVRPal "Pd Mic FFT" []
   addToLibPdSearchPath pd "test"
 
   patch  <- makePatch pd "test/test-fft"
@@ -55,7 +55,7 @@ main = withPd $ \pd -> do
 
   glClearColor 0.01 0.01 0.05 1
   let player = Pose (V3 0 0 2) (axisAngle (V3 0 1 0) 0)
-  whileVR vrPal $ \headM44 hands -> do
+  whileVR vrPal $ \headM44 hands events -> do
     processEvents gpEvents (closeOnEscape gpWindow)
 
     -- Get the latest FFT from Pd

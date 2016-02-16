@@ -125,19 +125,19 @@ ALuint* startAudio(int numSources, int bufferSize, HsStablePtr pdChan) {
 
 
   // Get list of available Capture Devices
-  const ALchar *deviceList = alcGetString(NULL, ALC_CAPTURE_DEVICE_SPECIFIER);
-  if (deviceList)
-  {
-      printf("\nAvailable Capture Devices are:\n");
+  // const ALchar *deviceList = alcGetString(NULL, ALC_CAPTURE_DEVICE_SPECIFIER);
+  // if (deviceList)
+  // {
+  //     printf("\nAvailable Capture Devices are:\n");
 
-      while (*deviceList)
-      {
-          printf("%s\n", deviceList);
-          deviceList += strlen(deviceList) + 1;
-      }
-  }
+  //     while (*deviceList)
+  //     {
+  //         printf("%s\n", deviceList);
+  //         deviceList += strlen(deviceList) + 1;
+  //     }
+  // }
   const ALchar *defaultCaptureDevice = alcGetString(NULL, ALC_CAPTURE_DEFAULT_DEVICE_SPECIFIER);
-  printf("\nDefault Capture Device is '%s'\n\n", defaultCaptureDevice);
+  // printf("\nDefault Capture Device is '%s'\n\n", defaultCaptureDevice);
 
   inputDevice = alcCaptureOpenDevice(NULL, SAMPLE_RATE, FORMAT, SAMPLE_RATE);
   if (!inputDevice) {
@@ -176,7 +176,7 @@ ALuint* startAudio(int numSources, int bufferSize, HsStablePtr pdChan) {
   threadData->pdInBuffer      = calloc(pdInBufferSize,  sizeof(short));
   threadData->pdTicks         = bufferSize/PD_BLOCK_SIZE;
   threadData->threadSleepNsec = ((double)bufferSize/SAMPLE_RATE) * NSEC_PER_SEC;
-  printf("OpenAL thread sleep time is %f seconds\n", (double)threadData->threadSleepNsec / NSEC_PER_SEC);
+  // printf("OpenAL thread sleep time is %f seconds\n", (double)threadData->threadSleepNsec / NSEC_PER_SEC);
 
   // Spread the sources out
   for (int i = 0; i < numSources; ++i) {
