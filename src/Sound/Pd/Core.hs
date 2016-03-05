@@ -361,16 +361,16 @@ unbind = libpd_unbind
 -- Arrays
 ---------
 
-arraySize :: Num a => PureData -> String -> IO a
-arraySize pd arrayName = do
+arraySize :: (MonadIO m, Num a) => PureData -> String -> m a
+arraySize pd arrayName = liftIO $ do
     resultVar <- newEmptyMVar
     onPdThread pd $ do
         size <- fromIntegral <$> withCString arrayName libpd_arraysize
         putMVar resultVar size
     takeMVar resultVar
 
-readArray :: (Integral a, Fractional b) => PureData -> String -> a -> a -> IO (Maybe [b])
-readArray pd arrayName offset count = do
+readArray :: (MonadIO m, Integral a, Fractional b) => PureData -> String -> a -> a -> m (Maybe [b])
+readArray pd arrayName offset count = liftIO $ do
     resultVar <- newEmptyMVar
     onPdThread pd $ do
         values <- withCString arrayName $ \cArrayName -> 
