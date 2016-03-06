@@ -2,7 +2,7 @@
 import Graphics.VR.Pal
 import Graphics.GL
 import Graphics.UI.GLFW.Pal
-import Sound.Pd1
+import Sound.Pd
 import System.Random
 import Control.Monad
 
@@ -27,20 +27,20 @@ keyToNote =
   ]
 
 main :: IO ()
-main = do
-  VRPal{..} <- initVRPal "Pd Interactive" NoGCPerFrame []
+main = withPd $ \pd -> do
+  vrPal@VRPal{..} <- initVRPal "Pd Interactive" []
 
-  patch <- makePatch "test/test-interactive"
+  patch <- makePatch pd "test/test-interactive"
   
   glClearColor 0.1 0.1 0.1 1
-  whileVR vrPal $ \headM44 hands -> do
+  whileVR vrPal $ \headM44 hands events -> do
     processEvents gpEvents $ \e -> do
       closeOnEscape gpWindow e
       forM_ keyToNote $ \(key, note) ->
         onKeyDown e key $ do
           [r,g,b] <- replicateM 3 randomIO
           glClearColor r g b 1
-          send patch "note" (Atom note)
+          send pd patch "note" (Atom note)
     
     glClear GL_COLOR_BUFFER_BIT
 
