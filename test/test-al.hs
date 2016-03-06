@@ -1,14 +1,13 @@
-import Sound.Pd1
+import Sound.Pd
 import Control.Concurrent
 import Control.Monad
 import Linear.Extra
 
 main :: IO ()
-main = do
-    p1 <- makePatch "test/world"
+main = withPd $ \pd -> do
+    p1 <- makePatch pd "test/world"
 
-    sources <- getPdSources
-    forM_ sources $ \sourceID -> alSourcePosition sourceID ((V3 0 0 0) :: V3 Double)
+    forM_ (pdSources pd) $ \sourceID -> alSourcePosition sourceID ((V3 0 0 0) :: V3 Double)
 
     --_ <- forkIO $ forM_ [200,210..1500] $ \freq -> do
     --    send p1 "freq" $ Atom $ Float (freq)
