@@ -84,6 +84,7 @@ acquireChannel name channelsVar = do
             writeTVar channelsVar (Map.insert name chan channels)
             return (chan, True)
 
+withPd :: (PureData -> IO c) -> IO c
 withPd = bracket initLibPd closeLibPd
 
 -- | Create a libpd instance. Must be called before anything else.
@@ -131,6 +132,7 @@ initLibPd = liftIO $ do
 
     return pd
 
+closeLibPd :: t -> IO ()
 closeLibPd _pureData = stopAudio
 
 onPdThread :: MonadIO m => PureData -> IO a -> m a
