@@ -108,18 +108,19 @@ ALuint* startAudio(int numSources, int bufferSize, HsStablePtr pdChan) {
 
   audioDevice = alcOpenDevice(NULL);
   if(!audioDevice) {
-    checkALError();
+    checkALCError(audioDevice);
     fprintf(stderr, "Couldn't open OpenAL device :-(\n");
     return allSourceIDs;
   }
   audioContext = alcCreateContext(audioDevice, NULL);
-  checkALError();
+  checkALCError(audioDevice);
   if(!audioContext) {
     fprintf(stderr, "Couldn't create OpenAL context :-(\n");
     return allSourceIDs;
   }
+
   alcMakeContextCurrent(audioContext);
-  checkALError();
+  checkALCError(audioDevice);
 
   // Open the input device for capturing microphone/line-in
 
