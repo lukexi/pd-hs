@@ -5,6 +5,7 @@ import Sound.Pd.Internal
 import Foreign.C
 import Foreign.Marshal hiding (void)
 import System.FilePath
+import System.Directory
 import Control.Monad
 import Control.Monad.Trans
 import Control.Concurrent
@@ -167,7 +168,7 @@ newtype DollarZero = DollarZero Int
 -- | Spawn a new instance of the given patch name (sans .pd extension)
 makePatch :: MonadIO m => PureData -> FilePath -> m Patch
 makePatch pd fileName = onPdThread pd $ do
-    file <- openFile (fileName <.> "pd") "."
+    file <- openFile (takeFileName fileName <.> "pd") (takeDirectory fileName)
     dz   <- getDollarZero file
     return $ Patch file dz
 
