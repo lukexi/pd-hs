@@ -27,17 +27,17 @@ pdRun chan action = do
     takeMVar result
 
 foreign import ccall "startAudio" 
-  startAudio :: CInt -> CInt -> StablePtr PdChan -> IO (Ptr OpenALSource)
+    startAudio :: CInt -> CInt -> StablePtr PdChan -> IO (Ptr OpenALSource)
 
 foreign import ccall "stopAudio"
-  stopAudio :: IO ()
+    stopAudio :: IO ()
 
 foreign import ccall "libpd_process_float"  
-  libpd_process_float  :: CInt -> Ptr CFloat  -> Ptr CFloat  -> IO CInt
+    libpd_process_float  :: CInt -> Ptr CFloat  -> Ptr CFloat  -> IO CInt
 foreign import ccall "libpd_process_double" 
-  libpd_process_double :: CInt -> Ptr CDouble -> Ptr CDouble -> IO CInt
+    libpd_process_double :: CInt -> Ptr CDouble -> Ptr CDouble -> IO CInt
 foreign import ccall "libpd_process_short"  
-  libpd_process_short  :: CInt -> Ptr CShort  -> Ptr CShort  -> IO CInt
+    libpd_process_short  :: CInt -> Ptr CShort  -> Ptr CShort  -> IO CInt
 
 
 foreign export ccall processFloat :: StablePtr PdChan -> CInt -> Ptr CFloat -> Ptr CFloat -> IO ()
@@ -81,30 +81,30 @@ foreign import ccall "libpd_add_symbol" libpd_add_symbol :: CString -> IO ()
 
 type CPrintHook = CString -> IO ()
 foreign import ccall "wrapper"
-   mkPrintHook :: CPrintHook -> IO (FunPtr CPrintHook)
+    mkPrintHook :: CPrintHook -> IO (FunPtr CPrintHook)
 foreign import ccall "libpd_set_printhook" libpd_set_printhook :: FunPtr CPrintHook -> IO ()
 type CBangHook = CString -> IO ()
 foreign import ccall "wrapper"
-   mkBangHook :: CBangHook -> IO (FunPtr CBangHook)
+    mkBangHook :: CBangHook -> IO (FunPtr CBangHook)
 foreign import ccall "libpd_set_banghook" libpd_set_banghook :: FunPtr CBangHook -> IO ()
 type CFloatHook = CString -> CFloat -> IO ()
 foreign import ccall "wrapper"
-   mkFloatHook :: CFloatHook -> IO (FunPtr CFloatHook)
+    mkFloatHook :: CFloatHook -> IO (FunPtr CFloatHook)
 
 foreign import ccall "libpd_set_floathook" libpd_set_floathook :: FunPtr CFloatHook -> IO ()
 type CSymbolHook = CString -> CString -> IO ()
 foreign import ccall "wrapper"
-   mkSymbolHook :: CSymbolHook -> IO (FunPtr CSymbolHook)
+    mkSymbolHook :: CSymbolHook -> IO (FunPtr CSymbolHook)
 
 foreign import ccall "libpd_set_symbolhook" libpd_set_symbolhook :: FunPtr CSymbolHook -> IO ()
 type CListHook = CString -> CInt -> AtomPtr -> IO ()
 foreign import ccall "wrapper"
-   mkListHook :: CListHook -> IO (FunPtr CListHook)
+    mkListHook :: CListHook -> IO (FunPtr CListHook)
 
 foreign import ccall "libpd_set_listhook" libpd_set_listhook :: FunPtr CListHook -> IO ()
 type CMessageHook = CString -> CString -> CInt -> AtomPtr -> IO ()
 foreign import ccall "wrapper"
-   mkMessageHook :: CMessageHook -> IO (FunPtr CMessageHook)
+    mkMessageHook :: CMessageHook -> IO (FunPtr CMessageHook)
 
 foreign import ccall "libpd_set_messagehook" libpd_set_messagehook :: FunPtr CMessageHook -> IO ()
 

@@ -17,25 +17,25 @@ import Control.Exception
 newtype OpenALSource = OpenALSource CUInt deriving (Show, Storable)
 
 foreign import ccall "setOpenALSourcePositionRaw" 
-  setOpenALSourcePositionRaw :: OpenALSource -> Ptr CFloat -> IO ()
+    setOpenALSourcePositionRaw :: OpenALSource -> Ptr CFloat -> IO ()
 
 foreign import ccall "setOpenALListenerOrientationRaw" 
-  setOpenALListenerOrientationRaw :: Ptr CFloat -> IO ()
+    setOpenALListenerOrientationRaw :: Ptr CFloat -> IO ()
 
 foreign import ccall "setOpenALListenerPositionRaw" 
-  setOpenALListenerPositionRaw :: Ptr CFloat -> IO ()
+    setOpenALListenerPositionRaw :: Ptr CFloat -> IO ()
 
 foreign import ccall "setOpenALListenerGainRaw" 
-  setOpenALListenerGainRaw :: CFloat -> IO ()
+    setOpenALListenerGainRaw :: CFloat -> IO ()
 
 foreign import ccall "setOpenALDistanceModelInverse"
-  setOpenALDistanceModelInverse :: IO ()
+    setOpenALDistanceModelInverse :: IO ()
 
 foreign import ccall "setOpenALDistanceModelLinear"
-  setOpenALDistanceModelLinear :: IO ()
+    setOpenALDistanceModelLinear :: IO ()
 
 foreign import ccall "setOpenALDistanceModelExponent"
-  setOpenALDistanceModelExponent :: IO ()
+    setOpenALDistanceModelExponent :: IO ()
 
 quaternionToUpAt :: (RealFloat a, Conjugate a) => Quaternion a -> (V3 a, V3 a)
 quaternionToUpAt quat = ( rotate quat (V3 0 (-1) 0) -- I expected to want 0 1 0, but this gives us correct results
@@ -44,39 +44,39 @@ quaternionToUpAt quat = ( rotate quat (V3 0 (-1) 0) -- I expected to want 0 1 0,
 
 quaternionToUpAtList :: (RealFloat a, Conjugate a) => Quaternion a -> [a]
 quaternionToUpAtList quat = [uX, uY, uZ, aX, aY, aZ] 
-  where (V3 uX uY uZ, V3 aX aY aZ) = quaternionToUpAt quat
+    where (V3 uX uY uZ, V3 aX aY aZ) = quaternionToUpAt quat
 
 alSourcePosition :: (MonadIO m, RealFloat a) => OpenALSource -> V3 a -> m ()
 alSourcePosition   sourceID (fmap realToFrac -> V3 x y z) = liftIO $ withArray [x,y,z] 
-  (setOpenALSourcePositionRaw sourceID)
+    (setOpenALSourcePositionRaw sourceID)
 
 alListenerPose :: (MonadIO m, RealFloat a) => Pose a -> m ()
 alListenerPose (Pose position orientation) = do
-    alListenerPosition position
-    alListenerOrientation orientation
+        alListenerPosition position
+        alListenerOrientation orientation
 
 alListenerPosition :: (MonadIO m, RealFloat a) => V3 a -> m ()
 alListenerPosition          (fmap realToFrac -> V3 x y z) = liftIO $ withArray [x,y,z] 
-  setOpenALListenerPositionRaw
+    setOpenALListenerPositionRaw
 
 alListenerOrientation :: (MonadIO m, RealFloat a) => Quaternion a -> m ()
 alListenerOrientation quat = liftIO $ withArray (quaternionToUpAtList (realToFrac <$> quat))
-  setOpenALListenerOrientationRaw
+    setOpenALListenerOrientationRaw
 
 alListenerGain :: (MonadIO m, RealFloat a) => a -> m ()
 alListenerGain gain = liftIO $ setOpenALListenerGainRaw (realToFrac gain)
 
 copyOpenALHRTFs :: IO (Either IOException ())
 copyOpenALHRTFs = liftIO . try $ do
-  mAppDataDir <- lookup "APPDATA" <$> getEnvironment
+    mAppDataDir <- lookup "APPDATA" <$> getEnvironment
 
-  forM_ mAppDataDir $ \appDataDir -> do
-    let openALDir      = "openal"   </> "hrtf"
-        appDataHRTFDir = appDataDir </> openALDir
+    forM_ mAppDataDir $ \appDataDir -> do
+        let openALDir      = "openal"   </> "hrtf"
+            appDataHRTFDir = appDataDir </> openALDir
 
-    createDirectoryIfMissing True appDataHRTFDir
+        createDirectoryIfMissing True appDataHRTFDir
 
-    contents <- filter (not . (`elem` [".", ".."])) <$> getDirectoryContents openALDir
-    forM_ contents $ \file -> do
-      -- putStrLn $ "Copying " ++ (openALDir </> file) ++ " to " ++ (appDataHRTFDir </> file)
-      copyFile (openALDir </> file) (appDataHRTFDir </> file)
+        contents <- filter (not . (`elem` [".", ".."])) <$> getDirectoryContents openALDir
+        forM_ contents $ \file -> do
+            -- putStrLn $ "Copying " ++ (openALDir </> file) ++ " to " ++ (appDataHRTFDir </> file)
+            copyFile (openALDir </> file) (appDataHRTFDir </> file)
