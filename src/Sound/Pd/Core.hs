@@ -103,6 +103,7 @@ initLibPd = liftIO $ do
         "\n" -> putStrLn =<< modifyMVar  printBuffer (return . ("",))
         word ->              modifyMVar_ printBuffer (return . (++ word))
 
+
     -- Set libpd's messages-from-pd hooks to write to a unified channel
     receiveChan <- newTChanIO
     let write = atomically . writeTChan receiveChan
@@ -168,7 +169,8 @@ newtype DollarZero = DollarZero Int
 -- | Spawn a new instance of the given patch name (sans .pd extension)
 makePatch :: MonadIO m => PureData -> FilePath -> m Patch
 makePatch pd fileName = onPdThread pd $ do
-    file <- openFile (takeFileName fileName <.> "pd") (takeDirectory fileName)
+    let dir = takeDirectory fileName 
+    file <- openFile (takeFileName fileName <.> "pd") (if null dir then "." else dir)
     dz   <- getDollarZero file
     return $ Patch file dz
 

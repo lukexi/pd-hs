@@ -135,9 +135,9 @@ ALuint* startAudio(int numSources, int bufferSize, HsStablePtr pdChan) {
         fprintf(stderr, "Couldn't create OpenAL context :-(\n");
         return allSourceIDs;
     }
-    list_audio_devices(alcGetString(NULL, ALC_DEVICE_SPECIFIER));
+    // list_audio_devices(alcGetString(NULL, ALC_DEVICE_SPECIFIER));
     const ALchar *defaultOutputDevice = alcGetString(NULL, ALC_DEFAULT_DEVICE_SPECIFIER);
-    printf("\nDefaultt Output Device is '%s'\n\n", defaultOutputDevice);
+    // printf("\nDefault Output Device is '%s'\n\n", defaultOutputDevice);
 
     alcMakeContextCurrent(audioContext);
     checkALCError(audioDevice);
@@ -146,19 +146,19 @@ ALuint* startAudio(int numSources, int bufferSize, HsStablePtr pdChan) {
 
 
     // Get list of available Capture Devices
-    const ALchar *deviceList = alcGetString(NULL, ALC_CAPTURE_DEVICE_SPECIFIER);
-    if (deviceList)
-    {
-        printf("\nAvailable Capture Devices are:\n");
+    // const ALchar *deviceList = alcGetString(NULL, ALC_CAPTURE_DEVICE_SPECIFIER);
+    // if (deviceList)
+    // {
+    //     printf("\nAvailable Capture Devices are:\n");
 
-        while (*deviceList)
-        {
-            printf("%s\n", deviceList);
-            deviceList += strlen(deviceList) + 1;
-        }
-    }
-    const ALchar *defaultCaptureDevice = alcGetString(NULL, ALC_CAPTURE_DEFAULT_DEVICE_SPECIFIER);
-    printf("\nDefault Capture Device is '%s'\n\n", defaultCaptureDevice);
+    //     while (*deviceList)
+    //     {
+    //         printf("%s\n", deviceList);
+    //         deviceList += strlen(deviceList) + 1;
+    //     }
+    // }
+    // const ALchar *defaultCaptureDevice = alcGetString(NULL, ALC_CAPTURE_DEFAULT_DEVICE_SPECIFIER);
+    // printf("\nDefault Capture Device is '%s'\n\n", defaultCaptureDevice);
 
     inputDevice = alcCaptureOpenDevice(NULL, SAMPLE_RATE, FORMAT, SAMPLE_RATE);
     if (!inputDevice) {
@@ -376,6 +376,7 @@ bool tick_source_stream(ALuint sourceID, int sourceNum, OpenALThreadData *thread
     // TODO: SIMD this
     for (int n = 0; n < bufferSize; ++n) {
         threadData->tempBuffer[n] = threadData->pdOutBuffer[sourceNum + (n * numSources)];
+        // printf("%f\n", threadData->tempBuffer[n]);
     }
         
     ALuint bufferID;

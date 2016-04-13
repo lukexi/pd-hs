@@ -28,20 +28,20 @@ keyToNote =
 
 main :: IO ()
 main = withPd $ \pd -> do
-  vrPal@VRPal{..} <- initVRPal "Pd Interactive" []
-
-  patch <- makePatch pd "test/test-interactive"
+    vrPal@VRPal{..} <- initVRPal "Pd Interactive" []
   
-  glClearColor 0.1 0.1 0.1 1
-  whileVR vrPal $ \headM44 hands events -> do
-    processEvents gpEvents $ \e -> do
-      closeOnEscape gpWindow e
-      forM_ keyToNote $ \(key, note) ->
-        onKeyDown e key $ do
-          [r,g,b] <- replicateM 3 randomIO
-          glClearColor r g b 1
-          send pd patch "note" (Atom note)
+    patch <- makePatch pd "test/test-interactive"
     
-    glClear GL_COLOR_BUFFER_BIT
+    glClearColor 0.1 0.1 0.1 1
+    whileVR vrPal $ \headM44 hands events -> do
+        processEvents gpEvents $ \e -> do
+            closeOnEscape gpWindow e
+            forM_ keyToNote $ \(key, note) ->
+                onKeyDown e key $ do
+                    [r,g,b] <- replicateM 3 randomIO
+                    glClearColor r g b 1
+                    send pd patch "note" (Atom note)
+      
+        glClear GL_COLOR_BUFFER_BIT
 
-    swapBuffers gpWindow
+        swapBuffers gpWindow
