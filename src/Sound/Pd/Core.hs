@@ -18,10 +18,13 @@ import Data.Data
 import Control.Exception
 import System.Mem.Weak
 import Sound.Pd.OpenAL
+import qualified Data.Vector.Storable.Mutable as VM
+import qualified Data.Vector.Storable as V
+import Data.Vector.Storable (Vector)
 
-data Atom = String String | Float Float deriving Show
+data Atom = String String | Float Float deriving (Eq, Show, Ord)
 
--- With OverloadedStrings, allows writing e.g. List ["freq", 440, "ratio", 1.6] 
+-- With OverloadedStrings, allows writing e.g. List ["freq", 440, "ratio", 1.6]
 instance IsString Atom where
     fromString = String
 
@@ -30,23 +33,47 @@ instance IsString Message where
 
 instance Num Atom where
     (Float a) + (Float b) = Float (a + b)
-    _ + _ = error "Can't + Float by String or vice versa"
+    other + _             = other
     (Float a) - (Float b) = Float (a - b)
-    _ - _ = error "Can't - Float by String or vice versa"
+    other - _             = other
     (Float a) * (Float b) = Float (a * b)
-    _ * _ = error "Can't * Float by String or vice versa"
-    abs (Float a) = Float (abs a)
-    abs _ = error "Can't abs String"
-    signum (Float a) = Float (signum a)
-    signum _ = error "Can't signum String"
-    fromInteger = Float . fromInteger
+    other * _             = other
+    abs (Float a)         = Float (abs a)
+    abs other             = other
+    signum (Float a)      = Float (signum a)
+    signum other          = other
+    fromInteger           = Float . fromInteger
 
 instance Fractional Atom where
     (Float a) / (Float b) = Float (a / b)
-    _ / _ = error "Can't divide Float by String or vice versa"
-    fromRational = Float . fromRational
+    other / _             = other
+    fromRational          = Float . fromRational
 
-data Message = Bang | Atom Atom | List [Atom] | Message String [Atom] deriving Show
+instance Num Message where
+    (Atom a) + (Atom b) = Atom (a + b)
+    other + _           = other
+    (Atom a) - (Atom b) = Atom (a - b)
+    other - _           = other
+    (Atom a) * (Atom b) = Atom (a * b)
+    other * _           = other
+    abs (Atom a)        = Atom (abs a)
+    abs other           = other
+    signum (Atom a)     = Atom (signum a)
+    signum other        = other
+    fromInteger         = Atom . fromInteger
+
+instance Fractional Message where
+    (Atom (Float a)) / (Atom (Float b)) = Atom (Float (a / b))
+    other / _                           = other
+    fromRational                        = Atom . fromRational
+
+
+
+data Message = Bang
+             | Atom Atom
+             | List [Atom]
+             | Message String [Atom]
+    deriving (Eq, Show, Ord)
 
 type Receiver = String
 
@@ -68,7 +95,7 @@ sendGlobal pd r msg = liftIO $ pdRun (pdThreadChan pd) $ void $ sendGlobal' msg
     sendGlobal' (Message sel args) = message r sel args
     sendGlobal' (List args)        = list    r args
 
-data PureData = PureData 
+data PureData = PureData
     { pdChannels   :: TVar (Map Receiver (TChan Message))
     , pdThreadChan :: PdChan
     , pdSources    :: [OpenALSource]
@@ -117,16 +144,16 @@ initLibPd = liftIO $ do
         (channel, _) <- acquireChannel rec channelsVar
         writeTChan channel msg
 
-    libpd_init 
-    
+    libpd_init
+
     let numberOfOpenALSources = 16
         bufferSize = 128
-    sources <- peekArray (fromIntegral numberOfOpenALSources) 
+    sources <- peekArray (fromIntegral numberOfOpenALSources)
         =<< startAudio numberOfOpenALSources bufferSize
         =<< newStablePtr runChan
     -- putStrLn $ "Initialized OpenAL with " ++ show numberOfOpenALSources ++ " sources: " ++ show sources
 
-    let pd = PureData 
+    let pd = PureData
             { pdChannels   = channelsVar
             , pdThreadChan = runChan
             , pdSources    = sources
@@ -153,23 +180,24 @@ makeReceiveChan (PureData {pdChannels=channelsVar}) name = liftIO $ do
 subscribe :: MonadIO m => PureData -> Receiver -> (Message -> IO a) -> m ThreadId
 subscribe pd name handler = liftIO $ do
     channel <- makeReceiveChan pd name
-    forkIO . forever $ 
+    forkIO . forever $
         handler =<< atomically (readTChan channel)
 
 --------
 -- Files
 --------
 
-data Patch = Patch { phFile :: File, phDollarZero :: DollarZero } deriving Typeable
+data Patch = Patch { phFile :: File, phDollarZero :: DollarZero }
+    deriving (Eq, Show, Ord, Typeable)
 
-newtype DollarZero = DollarZero Int
+newtype DollarZero = DollarZero Int deriving (Eq, Show, Ord)
 
 
 
 -- | Spawn a new instance of the given patch name (sans .pd extension)
 makePatch :: MonadIO m => PureData -> FilePath -> m Patch
 makePatch pd fileName = onPdThread pd $ do
-    let dir = takeDirectory fileName 
+    let dir = takeDirectory fileName
     file <- openFile (takeFileName fileName <.> "pd") (if null dir then "." else dir)
     dz   <- getDollarZero file
     return $ Patch file dz
@@ -194,15 +222,15 @@ withPatch pd name = bracket (makePatch pd name) (closePatch pd)
 -- | Add a directory to the searchpath to find Pd patches in
 -- (we just take PureData here to ensure it's initialized)
 addToLibPdSearchPath :: MonadIO m => PureData -> String -> m ()
-addToLibPdSearchPath _ dir = liftIO $ 
-    withCString dir $ \d -> 
+addToLibPdSearchPath _ dir = liftIO $
+    withCString dir $ \d ->
     libpd_add_to_search_path d
 
 -- | Open the given filename in the given dir
 openFile :: String -> String -> IO File
-openFile name dir = 
-    withCString name $ \n -> 
-    withCString dir $ \d -> 
+openFile name dir =
+    withCString name $ \n ->
+    withCString dir $ \d ->
     libpd_openfile n d
 
 
@@ -218,19 +246,19 @@ getDollarZero file = DollarZero . fromIntegral <$> libpd_getdollarzero file
 
 -- | Send a bang to the given receiver name
 bang :: MonadIO m => Receiver -> m Int
-bang receiver = liftIO $ fromIntegral <$> 
+bang receiver = liftIO $ fromIntegral <$>
     withCString receiver libpd_bang
 
 -- | Send a float to the given receiver name
 float :: MonadIO m => Receiver -> Float -> m Int
-float receiver f = liftIO $ fromIntegral <$> 
+float receiver f = liftIO $ fromIntegral <$>
     withCString receiver (\r -> libpd_float r (realToFrac f))
 
 -- | Send a symbol to the given receiver name
 symbol :: MonadIO m => Receiver -> String -> m Int
-symbol receiver sym = liftIO $ fromIntegral <$> 
-    withCString receiver (\r -> 
-    withCString sym      (\s -> 
+symbol receiver sym = liftIO $ fromIntegral <$>
+    withCString receiver (\r ->
+    withCString sym      (\s ->
     libpd_symbol r s))
 
 -- | Send a message (a selector with arguments) to the given receiver name
@@ -279,16 +307,16 @@ addSymbol sym = withCString sym libpd_add_symbol
 -- Hooks
 --------
 setPrintHook :: (String -> IO ()) -> IO ()
-setPrintHook printHook = 
+setPrintHook printHook =
     libpd_set_printhook =<< mkPrintHook (peekCString >=> printHook)
 
 
 setBangHook :: (String -> IO ()) -> IO ()
-setBangHook bangHook = 
+setBangHook bangHook =
     libpd_set_banghook =<< mkBangHook (peekCString >=> bangHook)
 
 setFloatHook :: (String -> Float -> IO ()) -> IO ()
-setFloatHook floatHook = 
+setFloatHook floatHook =
     libpd_set_floathook =<< mkFloatHook (\crec cf -> do
         rec <- peekCString crec
         let f = realToFrac cf
@@ -296,21 +324,21 @@ setFloatHook floatHook =
 
 
 setSymbolHook :: (String -> String -> IO ()) -> IO ()
-setSymbolHook symbolHook = 
+setSymbolHook symbolHook =
     libpd_set_symbolhook =<< mkSymbolHook (\crec csym -> do
         rec <- peekCString crec
         sym <- peekCString csym
         symbolHook rec sym)
 
 setListHook :: (Receiver -> [Atom] -> IO ()) -> IO ()
-setListHook listHook = 
+setListHook listHook =
     libpd_set_listhook =<< mkListHook (\crec count cargs -> do
         rec <- peekCString crec
         args <- convertList count cargs
         listHook rec args)
 
 setMessageHook :: (Receiver -> String -> [Atom] -> IO ()) -> IO ()
-setMessageHook messageHook = 
+setMessageHook messageHook =
     libpd_set_messagehook =<< mkMessageHook (\crec cmsg count cargs -> do
         rec  <- peekCString crec
         msg  <- peekCString cmsg
@@ -331,7 +359,7 @@ convertList count cargs = do
             then getFloat atom
             else do
                 isS <- isSymbol atom
-                if isS 
+                if isS
                     then getSymbol atom
                     else error "Unsupported atom type"
 
@@ -374,26 +402,28 @@ arraySize pd arrayName = liftIO $ do
         putMVar resultVar size
     takeMVar resultVar
 
-readArray :: (MonadIO m, Integral a, Fractional b) => PureData -> String -> a -> a -> m (Maybe [b])
+readArray :: (MonadIO m) => PureData -> String -> Int -> Int -> m (Maybe (Vector Float))
 readArray pd arrayName offset count = liftIO $ do
     resultVar <- newEmptyMVar
+
     onPdThread pd $ do
-        values <- withCString arrayName $ \cArrayName -> 
-            allocaArray (fromIntegral count) $ \ptr -> do
+        mutVector <- VM.new count
+        values <- withCString arrayName $ \cArrayName ->
+            VM.unsafeWith mutVector $ \ptr -> do
                 success <- libpd_read_array ptr cArrayName (fromIntegral offset) (fromIntegral count)
                 if success == 0
-                    then Just . fmap realToFrac <$> peekArray (fromIntegral count) ptr
+                    then Just . V.unsafeCast <$> V.unsafeFreeze mutVector
                     else return Nothing
         putMVar resultVar values
     takeMVar resultVar
 
-writeArray :: (Real a, Integral b, MonadIO m) => PureData -> String -> [a] -> b -> m ()
+writeArray :: (MonadIO m) => PureData -> String -> Vector Float -> Int -> m ()
 writeArray pd arrayName values offset = onPdThread pd $ do
-    withCString arrayName $ \cArrayName -> 
-        withArray (fmap realToFrac values) $ \ptr -> do
+    withCString arrayName $ \cArrayName ->
+        V.unsafeWith (V.unsafeCast values) $ \ptr -> do
             success <- libpd_write_array cArrayName (fromIntegral offset) ptr count
             when (not (success == 0)) $ putStrLn ("Pd-hs: Couldn't write to array " ++ arrayName)
-    where count = fromIntegral (length values)
+    where count = fromIntegral (V.length values)
 
 
 ------------

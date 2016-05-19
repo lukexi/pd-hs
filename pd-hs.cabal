@@ -46,7 +46,7 @@ test-suite interactive
     default-language:    Haskell2010
     main-is:             test-interactive.hs
     hs-source-dirs:      test
-    build-depends:       base, pd, linear-extra, 
+    build-depends:       base, pd, linear-extra,
                          vr-pal, gl, glfw-pal, random
     ghc-options:         -Wall -O2 -threaded
 
@@ -55,7 +55,7 @@ test-suite fft
     default-language:    Haskell2010
     main-is:             test-fft.hs
     hs-source-dirs:      test
-    build-depends:       base, pd, linear-extra, 
+    build-depends:       base, pd, linear-extra,
                          vr-pal, gl, glfw-pal, random, gl-pal
     ghc-options:         -Wall -O2 -threaded
 
@@ -83,7 +83,7 @@ library
     Sound.Pd.Internal
   -- other-modules:
   -- other-extensions:
-  build-depends:       base, filepath, stm, containers, linear-extra, mtl, directory
+  build-depends:       base, filepath, stm, containers, linear-extra, mtl, directory, vector
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-prof-options:    -Wall -O2 -fprof-auto
@@ -94,21 +94,21 @@ library
     c-sources: cbits/openal_mac_reverb.c
   if os(windows)
     include-dirs: include
-    extra-lib-dirs: 
-        c:\msys64\usr\local\bin 
+    extra-lib-dirs:
+        c:\msys64\usr\local\bin
         c:\msys64\mingw64\bin
-    extra-libraries: 
-        libwinpthread-1 
-        pd 
+    extra-libraries:
+        libwinpthread-1
+        pd
         OpenAL32
     c-sources: cbits/openal_soft_reverb.c
 
-  
+
   include-dirs:
     libpd/libpd_wrapper
     libpd/libpd_wrapper/util
     libpd/pure-data/src
-  
+
   c-sources:
     cbits/libpd_openal.c
   cc-options: -std=c99

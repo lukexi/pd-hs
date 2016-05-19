@@ -14,18 +14,18 @@ import Foreign.Marshal hiding (void)
 import Control.Monad
 import Control.Exception
 
-newtype OpenALSource = OpenALSource CUInt deriving (Show, Storable)
+newtype OpenALSource = OpenALSource CUInt deriving (Show, Storable, Eq, Ord)
 
-foreign import ccall "setOpenALSourcePositionRaw" 
+foreign import ccall "setOpenALSourcePositionRaw"
     setOpenALSourcePositionRaw :: OpenALSource -> Ptr CFloat -> IO ()
 
-foreign import ccall "setOpenALListenerOrientationRaw" 
+foreign import ccall "setOpenALListenerOrientationRaw"
     setOpenALListenerOrientationRaw :: Ptr CFloat -> IO ()
 
-foreign import ccall "setOpenALListenerPositionRaw" 
+foreign import ccall "setOpenALListenerPositionRaw"
     setOpenALListenerPositionRaw :: Ptr CFloat -> IO ()
 
-foreign import ccall "setOpenALListenerGainRaw" 
+foreign import ccall "setOpenALListenerGainRaw"
     setOpenALListenerGainRaw :: CFloat -> IO ()
 
 foreign import ccall "setOpenALDistanceModelInverse"
@@ -43,11 +43,11 @@ quaternionToUpAt quat = ( rotate quat (V3 0 (-1) 0) -- I expected to want 0 1 0,
                         )
 
 quaternionToUpAtList :: (RealFloat a, Conjugate a) => Quaternion a -> [a]
-quaternionToUpAtList quat = [uX, uY, uZ, aX, aY, aZ] 
+quaternionToUpAtList quat = [uX, uY, uZ, aX, aY, aZ]
     where (V3 uX uY uZ, V3 aX aY aZ) = quaternionToUpAt quat
 
 alSourcePosition :: (MonadIO m, RealFloat a) => OpenALSource -> V3 a -> m ()
-alSourcePosition   sourceID (fmap realToFrac -> V3 x y z) = liftIO $ withArray [x,y,z] 
+alSourcePosition   sourceID (fmap realToFrac -> V3 x y z) = liftIO $ withArray [x,y,z]
     (setOpenALSourcePositionRaw sourceID)
 
 alListenerPose :: (MonadIO m, RealFloat a) => Pose a -> m ()
@@ -56,7 +56,7 @@ alListenerPose (Pose position orientation) = do
         alListenerOrientation orientation
 
 alListenerPosition :: (MonadIO m, RealFloat a) => V3 a -> m ()
-alListenerPosition          (fmap realToFrac -> V3 x y z) = liftIO $ withArray [x,y,z] 
+alListenerPosition          (fmap realToFrac -> V3 x y z) = liftIO $ withArray [x,y,z]
     setOpenALListenerPositionRaw
 
 alListenerOrientation :: (MonadIO m, RealFloat a) => Quaternion a -> m ()
