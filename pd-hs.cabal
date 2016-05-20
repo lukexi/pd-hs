@@ -22,7 +22,7 @@ test-suite basic
     default-language:    Haskell2010
     main-is:             test-basic.hs
     hs-source-dirs:      test
-    build-depends:       base, pd
+    build-depends:       base, pd-hs
     ghc-options:         -Wall -O2 -threaded
 
 test-suite pd1
@@ -30,7 +30,7 @@ test-suite pd1
     default-language:    Haskell2010
     main-is:             test-pd1.hs
     hs-source-dirs:      test
-    build-depends:       base, pd, linear-extra
+    build-depends:       base, pd-hs, linear-extra
     ghc-options:         -Wall -O2 -threaded
 
 test-suite al
@@ -38,7 +38,7 @@ test-suite al
     default-language:    Haskell2010
     main-is:             test-al.hs
     hs-source-dirs:      test
-    build-depends:       base, pd, linear-extra
+    build-depends:       base, pd-hs, linear-extra
     ghc-options:         -Wall -O2 -threaded
 
 test-suite interactive
@@ -46,7 +46,7 @@ test-suite interactive
     default-language:    Haskell2010
     main-is:             test-interactive.hs
     hs-source-dirs:      test
-    build-depends:       base, pd, linear-extra, 
+    build-depends:       base, pd-hs, linear-extra,
                          vr-pal, gl, glfw-pal, random
     ghc-options:         -Wall -O2 -threaded
 
@@ -55,7 +55,7 @@ test-suite fft
     default-language:    Haskell2010
     main-is:             test-fft.hs
     hs-source-dirs:      test
-    build-depends:       base, pd, linear-extra, 
+    build-depends:       base, pd-hs, linear-extra,
                          vr-pal, gl, glfw-pal, random, gl-pal
     ghc-options:         -Wall -O2 -threaded
 
@@ -64,7 +64,7 @@ test-suite microphone
     default-language:    Haskell2010
     main-is:             test-microphone.hs
     hs-source-dirs:      test
-    build-depends:       base, pd, linear-extra, time
+    build-depends:       base, pd-hs, linear-extra, time
     ghc-options:         -Wall -O2 -threaded
 
 test-suite meta
@@ -72,7 +72,7 @@ test-suite meta
     default-language:    Haskell2010
     main-is:             test-meta.hs
     hs-source-dirs:      test
-    build-depends:       base, pd
+    build-depends:       base, pd-hs
     ghc-options:         -Wall -O2 -threaded
 
 library
@@ -94,21 +94,21 @@ library
     c-sources: cbits/openal_mac_reverb.c
   if os(windows)
     include-dirs: include
-    extra-lib-dirs: 
-        c:\msys64\usr\local\bin 
+    extra-lib-dirs:
+        c:\msys64\usr\local\bin
         c:\msys64\mingw64\bin
-    extra-libraries: 
-        libwinpthread-1 
-        pd 
+    extra-libraries:
+        libwinpthread-1
+        pd
         OpenAL32
     c-sources: cbits/openal_soft_reverb.c
 
-  
+
   include-dirs:
     libpd/libpd_wrapper
     libpd/libpd_wrapper/util
     libpd/pure-data/src
-  
+
   c-sources:
     cbits/libpd_openal.c
   cc-options: -std=c99
