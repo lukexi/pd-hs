@@ -440,3 +440,7 @@ makePolyPatch pd count patchName = liftIO $ PolyPatch <$>
 getPolyVoice :: MonadIO m => PolyPatch -> m Patch
 getPolyVoice (PolyPatch voices) = liftIO $ modifyMVar voices $ \(v:vs) -> return (vs++[v], v)
 
+toPdPathStyle :: MonadIO m => FilePath -> m FilePath
+toPdPathStyle path = do
+    absolute <- liftIO (makeAbsolute path)
+    return $ map (\c -> if c == '\\' then '/' else c) absolute
