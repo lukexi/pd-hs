@@ -440,6 +440,9 @@ makePolyPatch pd count patchName = liftIO $ PolyPatch <$>
 getPolyVoice :: MonadIO m => PolyPatch -> m Patch
 getPolyVoice (PolyPatch voices) = liftIO $ modifyMVar voices $ \(v:vs) -> return (vs++[v], v)
 
+-- | Converts relative paths to absolute since I haven't had success
+-- with relative paths,
+-- and replaces Windows \ style paths with the / paths Pd likes
 toPdPathStyle :: MonadIO m => FilePath -> m FilePath
 toPdPathStyle path = do
     absolute <- liftIO (makeAbsolute path)
