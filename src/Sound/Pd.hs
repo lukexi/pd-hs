@@ -22,6 +22,7 @@ module Sound.Pd (
     readArray,
     writeArray,
     arraySize,
+    toPdPathStyle,
     module Sound.Pd.OpenAL
     ) where
 import Sound.Pd.Core
