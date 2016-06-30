@@ -56,7 +56,7 @@ test-suite fft
     main-is:             test-fft.hs
     hs-source-dirs:      test
     build-depends:       base, pd-hs, linear-extra,
-                         vr-pal, gl, glfw-pal, random, gl-pal
+                         vr-pal, gl, glfw-pal, random, gl-pal, vector, mtl
     ghc-options:         -Wall -O2 -threaded
 
 test-suite microphone
