@@ -92,6 +92,7 @@ library
     frameworks: Foundation AudioToolbox AudioUnit Accelerate CoreAudio Carbon OpenAL
     extra-libraries: pd
     c-sources: cbits/openal_mac_reverb.c
+    extra-lib-dirs: /usr/local/lib
   if os(windows)
     include-dirs: include
     extra-lib-dirs:
