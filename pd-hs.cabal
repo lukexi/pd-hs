@@ -103,6 +103,12 @@ library
         pd
         OpenAL32
     c-sources: cbits/openal_soft_reverb.c
+  if os(linux)
+    include-dirs: include
+    extra-libraries: openal pd
+    c-sources: cbits/openal_soft_reverb.c
+    extra-lib-dirs: /usr/local/bin
+    cc-options: -DLINUX --std=gnu99
 
 
   include-dirs:

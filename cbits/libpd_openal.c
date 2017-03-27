@@ -1,4 +1,4 @@
-#if defined(_WIN32)
+#if defined(_WIN32) || defined(LINUX)
 #include "AL/al.h"
 #include "AL/alc.h"
 #else
@@ -169,7 +169,7 @@ ALuint* startAudio(int numSources, int bufferSize, HsStablePtr pdChan) {
     checkALCError(inputDevice);
 
     // Enable HRTF spatialization
-    #if defined(_WIN32)
+    #if defined(_WIN32) || defined(LINUX)
     // TODO OpenAL-soft HRTF enable here
     #else
     static alcMacOSXRenderingQualityProcPtr alcMacOSXRenderingQuality = NULL;

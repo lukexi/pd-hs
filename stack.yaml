@@ -8,4 +8,4 @@ packages:
 - '../lens-extra'
 - '../halive'
 - '../openvr-hs'
-resolver: nightly-2016-08-17
+resolver: lts-8.5
