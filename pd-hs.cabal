@@ -107,7 +107,7 @@ library
     include-dirs: include
     extra-libraries: openal pd
     c-sources: cbits/openal_soft_reverb.c
-    extra-lib-dirs: /usr/local/bin
+    extra-lib-dirs: /usr/local/lib
     cc-options: -DLINUX --std=gnu99
 
 
